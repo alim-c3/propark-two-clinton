@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROPARK · Two Clinton Park</title>
+<style>
+:root { --navy:#0E1726; --cream:#F6F1E6; --gold:#F5B942; --gold2:#C4841E; --muted:#5c6270; --line:#e2dccb; --ok:#0f7a4a; --soft:#fffdf8; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:system-ui,sans-serif; background:var(--cream); color:var(--navy); }
+header.app { background:var(--navy); color:var(--cream); display:flex; align-items:center; gap:14px; padding:10px 18px; position:sticky; top:0; z-index:30; }
+.brand { font-size:11px; letter-spacing:.12em; color:var(--gold); font-weight:700; }
+.brand b { display:block; color:#fff; letter-spacing:0; font-size:15px; font-weight:650; margin-top:2px; }
+nav.roles { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+nav.roles button { border:0; background:#243044; color:#efe8d6; border-radius:999px; padding:8px 13px; font-weight:650; font-size:13px; cursor:pointer; }
+nav.roles button.on { background:var(--gold); color:var(--navy); }
+.wrap { max-width:1280px; margin:0 auto; padding:18px; }
+.hello { background:var(--navy); color:#fff; border-radius:18px; padding:22px 24px; margin-bottom:16px; }
+.hello h1 { margin:6px 0 8px; font-size:28px; line-height:1.15; }
+.hello p { margin:0; color:#d9d1bf; max-width:640px; line-height:1.45; }
+.grid { display:grid; gap:14px; }
+.g2 { grid-template-columns:1.2fr .8fr; }
+.g3 { grid-template-columns:repeat(3,1fr); }
+.g4 { grid-template-columns:repeat(4,1fr); }
+@media(max-width:960px){ .g2,.g3,.g4 { grid-template-columns:1fr; } }
+.card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; }
+.k { font-size:11px; letter-spacing:.1em; color:var(--gold2); font-weight:700; }
+.stat { font-size:26px; font-weight:750; }
+.muted { color:var(--muted); font-size:13px; line-height:1.4; }
+.btn { border:0; border-radius:999px; padding:9px 14px; font-weight:700; font-size:13px; cursor:pointer; }
+.gold { background:var(--gold); color:var(--navy); }
+.navy { background:var(--navy); color:#fff; }
+.ghost { background:#fff; border:1px solid var(--line); color:var(--navy); }
+.danger { background:#fde8e8; color:#9b1c1c; }
+.row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; }
+.now { background:#ffe8a3; } .sch { background:#dbeafe; } .arr { background:#ede9fe; }
+.ok { background:#d1fae5; } .wait { background:#ffedd5; } .open { background:#eee; }
+.ticket { border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:var(--soft); }
+.garage { display:grid; grid-template-columns:repeat(8,1fr); gap:7px; }
+@media(max-width:700px){ .garage { grid-template-columns:repeat(4,1fr); } }
+.stall { min-height:58px; border-radius:10px; padding:6px; font-size:11px; border:1px solid var(--line); background:#f3efe4; cursor:pointer; }
+.stall.empty { background:#fff; color:#9aa0ab; }
+.stall.ev { box-shadow:inset 0 0 0 2px #0f7a4a; }
+.stall.sel { outline:2px solid var(--gold); }
+.bar { height:9px; background:#ece6d6; border-radius:99px; overflow:hidden; }
+.bar > i { display:block; height:100%; background:var(--gold); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; font-size:11px; color:var(--muted); border-bottom:1px solid var(--line); padding:6px 4px; }
+td { padding:8px 4px; border-bottom:1px solid #eee; }
+input { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:10px; font:inherit; margin:4px 0 10px; }
+label { font-size:12px; font-weight:700; }
+.toast { position:fixed; right:16px; bottom:16px; background:var(--navy); color:#fff; padding:12px 16px; border-radius:12px; display:none; z-index:40; }
+.hide { display:none !important; }
+.chip { background:#fff4d6; border-radius:10px; padding:10px 12px; margin:8px 0; }
+.staff { display:flex; gap:8px; flex-wrap:wrap; }
+.avatar { background:#243044; color:#fff; border-radius:12px; padding:10px 12px; min-width:120px; }
+.avatar.on { background:#1f4d38; }
+footer.fine { margin:18px 0 8px; color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="brand">PROPARK · TWO CLINTON PARK<b id="hdr-title">Hi Priya — 702 is ready when you are</b></div>
+  <nav class="roles">
+    <button class="on" data-v="resident">Resident</button>
+    <button data-v="valet">Valet</button>
+    <button data-v="front">Front desk</button>
+    <button data-v="back">Backend ops</button>
+  </nav>
+</header>
+<div class="wrap">
+<div class="card" style="margin-bottom:16px;">
+  <div class="k">PROPARK FACILITY CARD · TWO CLINTON PARK GARAGE</div>
+  <h3 style="margin:6px 0 8px;">50 Clinton Place · 914-689-0751 · 24/7</h3>
+  <p class="muted">Covered, well lit, above-ground. EV · ADA · plate required · ParkChirp · oversize friendly · self-park and valet.</p>
+  <div class="grid g4" style="margin-top:10px;">
+    <div><div class="k">HOURLY</div><div>$6 / $13 / $18</div></div>
+    <div><div class="k">24 HOUR</div><div>$20</div></div>
+    <div><div class="k">MONTHLY</div><div>$265 sedan / $340 oversize</div></div>
+    <div><div class="k">HOUSE RULES</div><div>Height 6'9" · no in/out*</div></div>
+  </div>
+</div>
+<section id="v-resident">
+  <div class="hello">
+    <div class="k">GOOD AFTERNOON · APT 702</div>
+    <h1>Hi Priya — want the Tesla for Grand Central, or should we leave it charging?</h1>
+    <p>White Model Y is on B-14, at 74%. Rossi’s Audi from 414 is nosed in front. Two minutes to slide it, then you’re on Clinton Place.</p>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="k">YOUR CAR</div>
+      <h3>2023 Tesla Model Y · White</h3>
+      <p class="muted">Plate HST-4412 · Stall B-14 · Keys in cabinet 07 · 74%</p>
+      <div class="chip">B-13 (Rossi’s Audi) is nosed in front. If you tap Bring now, Luis slides that Audi first.</div>
+      <div class="actions">
+        <button class="btn gold" onclick="requestNow()">Bring my car now</button>
+        <button class="btn navy" onclick="openSched('pickup')">Pick a time</button>
+        <button class="btn ghost" onclick="openSched('arrival')">I’m on my way in</button>
+      </div>
+      <div id="sched" class="hide" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px;">
+        <label>When should we have it ready?</label>
+        <input type="datetime-local" id="when" />
+        <label>Anything we should know?</label>
+        <input id="note" placeholder="Child seat, groceries, charge to 80%…" />
+        <div class="actions">
+          <button class="btn gold" onclick="scheduleIt()">Save this for me</button>
+          <button class="btn ghost" onclick="$('sched').classList.add('hide')">Never mind</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><h3>Your tickets</h3><div id="res-tickets"></div></div>
+  </div>
+</section>
+<section id="v-valet" class="hide">
+  <div class="hello">
+    <div class="k">VALET LANE · CLINTON PLACE</div>
+    <h1>Here’s who needs a car, and who’s in the way.</h1>
+    <p>Check in so the cabinet unlocks. Nested cars are named first.</p>
+  </div>
+  <div class="grid g3" style="margin-bottom:14px;">
+    <div class="card">
+      <div class="k">YOUR SHIFT</div>
+      <div class="stat" id="shift-lab">Off duty</div>
+      <div class="actions">
+        <button class="btn gold" onclick="clock(true)">I’m here — check in</button>
+        <button class="btn ghost" onclick="clock(false)">Heading out</button>
+      </div>
+    </div>
+    <div class="card"><div class="k">WHO’S ON</div><div class="staff" id="staff-box"></div></div>
+    <div class="card"><div class="k">DO THIS NEXT</div><div class="stat" style="font-size:18px;" id="next-pull">—</div></div>
+  </div>
+  <div class="card"><h3>Live board</h3><div id="valet-board"></div></div>
+</section>
+<section id="v-front" class="hide">
+  <div class="hello">
+    <div class="k">FRONT DESK</div>
+    <h1>Same tickets the valets see.</h1>
+  </div>
+  <div class="grid g3" style="margin-bottom:14px;">
+    <div class="card"><div class="k">OPEN TICKETS</div><div class="stat" id="fd-open">0</div></div>
+    <div class="card"><div class="k">GUESTS TODAY</div><div class="stat">3</div></div>
+    <div class="card"><div class="k">SLA THIS HOUR</div><div class="stat">7.1 min</div></div>
+  </div>
+  <div class="card"><table><thead><tr><th>Time</th><th>Who</th><th>Need</th><th>Status</th></tr></thead><tbody id="lobby-tape"></tbody></table></div>
+</section>
+<section id="v-back" class="hide">
+  <div class="hello">
+    <div class="k">BACKEND · PROPARK OPS</div>
+    <h1>The garage already knows tomorrow morning.</h1>
+  </div>
+  <div class="grid g4" style="margin-bottom:14px;">
+    <div class="card"><div class="k">PULLS TODAY</div><div class="stat" id="bk-pulls">47</div></div>
+    <div class="card"><div class="k">AVG STAGE</div><div class="stat">6.4 min</div></div>
+    <div class="card"><div class="k">AM FORECAST</div><div class="stat">16</div></div>
+    <div class="card"><div class="k">NEST MOVES SAVED</div><div class="stat">11</div></div>
+  </div>
+  <div class="card"><h3>Next 12 hours</h3><div id="forecast"></div></div>
+</section>
+<div class="card" style="margin-top:16px;">
+  <div class="k">PODIUM GARAGE</div>
+  <h3>Working sample on the Two Clinton plate</h3>
+  <p class="muted" id="stall-d">Tap any stall</p>
+  <div class="garage" id="garage"></div>
+</div>
+<footer class="fine">Demo for Two Clinton Park / 50 Clinton Place. Names are fictional. Stall IDs are a working sample.</footer>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = id => document.getElementById(id);
+const STALLS = [
+  {id:"A-01",z:"hot",ev:0,plate:"KLM-2291",unit:"308",car:"BMW X5"},
+  {id:"A-02",z:"hot",ev:1,plate:null},
+  {id:"A-03",z:"hot",ev:0,plate:null},
+  {id:"A-04",z:"hot",ev:0,plate:"Q5-4419",unit:"414",car:"Audi Q5"},
+  {id:"B-11",z:"mid",ev:0,plate:"PRK-1008",unit:"210",car:"Honda Pilot"},
+  {id:"B-12",z:"mid",ev:1,plate:null},
+  {id:"B-13",z:"mid",ev:0,plate:"Q5-BLK",unit:"414 overflow",car:"Audi blocking 702"},
+  {id:"B-14",z:"deep",ev:1,plate:"HST-4412",unit:"702",car:"Tesla Y",blockedBy:"B-13 Audi"},
+  {id:"B-15",z:"deep",ev:0,plate:"NYC-8821",unit:"1512",car:"Lexus RX"},
+  {id:"C-01",z:"deep",ev:1,plate:"EV-1902",unit:"2F",car:"Ioniq 5"},
+  {id:"C-05",z:"mid",ev:0,plate:"GT-55",unit:"PH4",car:"Macan"},
+  {id:"P-01",z:"permit",ev:0,plate:"50-C-018",unit:"City permit",car:"Camry"},
+  {id:"R-02",z:"hot",ev:0,plate:"G-441",unit:"Guest 702",car:"CR-V"},
+  {id:"R-03",z:"mid",ev:0,plate:null},
+];
+let tickets = [
+  {id:101,type:"scheduled",unit:"702",name:"Priya Nair",car:"Tesla Y",plate:"HST-4412",stall:"B-14",due:"Thu 07:05",status:"open",note:"Standing Metro-North run",blockedBy:"B-13 Audi"},
+  {id:102,type:"now",unit:"308",name:"Ravi Patel",car:"BMW X5",plate:"KLM-2291",stall:"A-01",due:"Now",status:"claimed",valet:"Luis",note:"New Rochelle station"},
+  {id:103,type:"arrival",unit:"702",name:"Priya’s sister",car:"CR-V",plate:"G-441",stall:"R-02",due:"16:30",status:"open",note:"Guest after Toast Coffee"},
+  {id:105,type:"now",unit:"PH4",name:"Jordan Blake",car:"Macan",plate:"GT-55",stall:"C-05",due:"Now",status:"open",note:"Club level"},
+];
+const staff = { you:false, Luis:true, Ana:false, Derrick:true };
+let kind = "pickup", nid = 200;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; setTimeout(()=>t.style.display="none",2800); }
+function titles(v){ return { resident:"Hi Priya — 702 is ready when you are", valet:"Lane board", front:"Lobby tape", back:"Ops board" }[v]; }
+function renderGarage(){
+  const g=$("garage"); g.innerHTML="";
+  STALLS.forEach(s=>{
+    const d=document.createElement("div");
+    d.className="stall "+(s.plate?s.z:"empty")+(s.ev?" ev":"");
+    d.innerHTML=`<strong>${s.id}</strong><br>${s.plate||"open"}`;
+    d.onclick=()=>{ document.querySelectorAll(".stall").forEach(x=>x.classList.remove("sel")); d.classList.add("sel"); $("stall-d").textContent = s.plate ? `${s.id} · ${s.car} · ${s.unit}${s.blockedBy?" · move "+s.blockedBy+" first":""}` : `${s.id} is empty`; };
+    g.appendChild(d);
+  });
+}
+function renderRes(){
+  const mine=tickets.filter(t=>t.unit==="702"||/Priya/i.test(t.name));
+  $("res-tickets").innerHTML = mine.map(t=>`<div class="ticket"><div class="row"><strong>${t.car} · ${t.plate}</strong><span class="pill ${t.type==="now"?"now":t.type==="arrival"?"arr":"sch"}">${t.type}</span></div><p class="muted">Ready ${t.due} · ${t.stall} · ${t.status}</p>${t.status==="open"?`<button class="btn danger" onclick="cancelT(${t.id})">Cancel</button>`:"<span class='muted'>Claimed — desk can still help.</span>"}</div>`).join("") || "<p class='muted'>Nothing waiting.</p>";
+}
+function renderValet(){
+  $("staff-box").innerHTML = Object.entries(staff).map(([n,on])=>`<div class="avatar ${on?"on":""}"><div>${n==="you"?"You":n}</div><div class="muted" style="color:#c9c4b6;">${on?"On the floor":"Off"}</div></div>`).join("");
+  $("shift-lab").textContent = staff.you ? "You’re on" : "Still off duty";
+  const open=tickets.filter(t=>!["released","cancelled"].includes(t.status));
+  const nxt=open.find(t=>t.status==="open")||open[0];
+  $("next-pull").textContent = nxt ? `${nxt.plate} at ${nxt.stall}${nxt.blockedBy?" — move "+nxt.blockedBy+" first":""}` : "Lane is clear.";
+  $("valet-board").innerHTML = open.map(t=>`<div class="ticket"><div class="row"><div><strong>${t.unit} · ${t.name}</strong><div class="muted">${t.car} ${t.plate} · ${t.stall}${t.blockedBy?" · blocker: "+t.blockedBy:""}</div></div><span class="pill ${t.status==="claimed"?"wait":t.status==="staged"?"ok":"open"}">${t.status}</span></div><div class="actions"><button class="btn gold" onclick="advance(${t.id})" ${staff.you?"":"disabled"}>${t.status==="open"?"I’ve got this":t.status==="claimed"?"It’s at the curb":t.status==="staged"?"Handed to resident":"Done"}</button></div></div>`).join("") || "<p class='muted'>Nothing on the board.</p>";
+}
+function renderFront(){
+  const open=tickets.filter(t=>!["released","cancelled"].includes(t.status));
+  $("fd-open").textContent=open.length;
+  $("lobby-tape").innerHTML = tickets.map(t=>`<tr><td>${t.due}</td><td>${t.name} · ${t.unit}</td><td>${t.type} · ${t.car}</td><td>${t.status}</td></tr>`).join("");
+}
+function renderBack(){
+  $("bk-pulls").textContent = 29 + tickets.length;
+  const hours=[["5pm",7],["6pm",9],["7pm",6],["7am",11],["8am",8]];
+  $("forecast").innerHTML = hours.map(([h,n])=>`<div class="row" style="margin:7px 0;"><span class="muted" style="width:40px;">${h}</span><div class="bar" style="flex:1;"><i style="width:${n*9}%"></i></div><span>${n}</span></div>`).join("");
+}
+function requestNow(){ tickets.unshift({id:nid++,type:"now",unit:"702",name:"Priya Nair",car:"Tesla Y",plate:"HST-4412",stall:"B-14",due:"Now",status:"open",note:"Bring now",blockedBy:"B-13 Audi"}); paint(); toast("On it. Luis will slide the Audi, then your Tesla rolls up."); }
+function openSched(k){ kind=k; $("sched").classList.remove("hide"); }
+function scheduleIt(){ const when=$("when").value || "Tomorrow 07:05"; tickets.unshift({id:nid++,type:kind==="arrival"?"arrival":"scheduled",unit:"702",name:"Priya Nair",car:"Tesla Y",plate:"HST-4412",stall:"B-14",due:when.replace("T"," "),status:"open",note:$("note").value}); $("sched").classList.add("hide"); paint(); toast("Saved."); }
+function cancelT(id){ const t=tickets.find(x=>x.id===id); if(!t||t.status!=="open"){ toast("Too late — already claimed."); return; } t.status="cancelled"; paint(); toast("Cancelled."); }
+function clock(on){ if(!on && tickets.some(t=>t.valet==="You"&&t.status==="claimed")){ toast("Hand off that car first."); return; } staff.you=on; paint(); toast(on?"Welcome in. Cabinet 07 unlocked.":"Checked out."); }
+function advance(id){ if(!staff.you){ toast("Check in first."); return; } const t=tickets.find(x=>x.id===id); if(!t) return; if(t.status==="open"){ t.status="claimed"; t.valet="You"; toast("Yours."); } else if(t.status==="claimed"){ t.status="staged"; toast(t.plate+" is at the curb."); } else if(t.status==="staged"){ t.status="released"; toast("Handed off."); } paint(); }
+document.querySelectorAll("nav.roles button").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("nav.roles button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); const v=b.dataset.v; ["resident","valet","front","back"].forEach(id=>$("v-"+id).classList.toggle("hide", id!==v)); $("hdr-title").textContent=titles(v); }; });
+function paint(){ renderGarage(); renderRes(); renderValet(); renderFront(); renderBack(); }
+paint();
+</script>
+</body>
+</html>

@@ -1,11 +1,14 @@
-# Runway · Two Clinton Park
+# PROPARK Runway · Two Clinton Park
 
-Static ProPark valet demo.
+Valet OS demo for Two Clinton Park / 50 Clinton Place, New Rochelle.
 
-## Vercel
+- Resident app — request, schedule, cancel, live wait
+- Valet console — clock in, take it out, finish
+- Manager — coverage, map, restack, SLA
 
-Framework: Vite  
-Build command: `npx vite build`  
-Output: `dist`
+```
+npm install
+npm run dev
+```
 
-Redeploy after this commit. The previous failure was `Cannot resolve entry module index.html` — that file is now in the repo root.
+Vercel: build command `npm run build`.

@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0e1726;
+  --color-navy-2: #162033;
+  --color-cream: #f6f1e6;
+  --color-gold: #f5b942;
+  --color-gold-2: #c4841e;
+  --color-ink: #1a2436;
+  --color-muted: #5c6270;
+  --color-line: #e2dccb;
+  --color-ok: #0f7a4a;
+  --color-danger: #9b1c1c;
+  --color-danger-soft: #fde8e8;
+  --color-white: #ffffff;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-padding-top: 4.5rem;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  body {
+    margin: 0;
+    background: var(--color-cream);
+    color: var(--color-navy);
+    font-family: var(--font-sans);
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes stall-hit {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px var(--color-gold);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--color-gold);
+  }
+}
+
+.stall-hit {
+  animation: stall-hit 1.4s ease-in-out infinite;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

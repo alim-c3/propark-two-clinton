@@ -1,38 +1,13 @@
 {
-  "name": "propark-two-clinton",
+  "name": "runway-two-clinton",
   "private": true,
-  "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "npx vite dev --host 0.0.0.0 --port 8080",
-    "build": "npx vite build",
-    "preview": "npx vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.3.0",
-    "@tanstack/react-query": "^5.101.0",
-    "@tanstack/react-router": "^1.170.0",
-    "@tanstack/react-start": "^1.168.0",
-    "@tanstack/react-table": "^8.21.0",
-    "@tanstack/router-plugin": "^1.168.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.510.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "recharts": "^2.13.0",
-    "sonner": "^2.0.7",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.3.0",
-    "zustand": "^5.0.0"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@types/node": "^22.16.5",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^5.2.0",
-    "nitro": "3.0.260610-beta",
-    "typescript": "^5.7.0",
-    "vite": "^8.2.0"
+    "vite": "^7.1.0"
   }
 }

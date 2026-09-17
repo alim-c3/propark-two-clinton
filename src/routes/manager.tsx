@@ -3,13 +3,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Bar,
-  BarChart,
+  CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AttendantBoard } from "@/components/attendant-board";
 import { BuyProof } from "@/components/buy-proof";
@@ -26,6 +28,175 @@ import { useLane } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/manager")({ component: Manager });
+
+const WEEKDAY = FORECAST;
+const SATURDAY = [
+  { hour: "2p", pulls: 4, actual: 3 },
+  { hour: "3p", pulls: 6, actual: 5 },
+  { hour: "4p", pulls: 7, actual: 6 },
+  { hour: "5p", pulls: 5, actual: 4 },
+  { hour: "6p", pulls: 4, actual: 3 },
+  { hour: "7p", pulls: 5, actual: 0 },
+  { hour: "8p", pulls: 6, actual: 0 },
+  { hour: "9p", pulls: 4, actual: 0 },
+  { hour: "6a", pulls: 1, actual: 0 },
+  { hour: "7a", pulls: 2, actual: 0 },
+  { hour: "8a", pulls: 3, actual: 0 },
+  { hour: "9a", pulls: 4, actual: 0 },
+];
+
+function CarsPerHour() {
+  const staff = useLane((s) => s.staff);
+  const onFloor = Object.values(staff).filter(Boolean).length;
+  const [day, setDay] = useState<"weekday" | "saturday">("weekday");
+  const [valets, setValets] = useState(Math.max(1, onFloor || 2));
+  const [picked, setPicked] = useState("7a");
+
+  const rows = useMemo(() => {
+    const src = day === "weekday" ? WEEKDAY : SATURDAY;
+    const cap = valets * 4;
+    return src.map((r) => ({
+      ...r,
+      demand: r.pulls,
+      done: r.actual,
+      capacity: cap,
+      gap: Math.max(0, r.pulls - cap),
+    }));
+  }, [day, valets]);
+
+  const hour = rows.find((r) => r.hour === picked) ?? rows[0];
+  const tight = hour.gap > 0;
+  const wait = tight ? Math.max(4, Math.round((hour.gap / Math.max(1, valets)) * 6)) : 3;
+
+  return (
+    <section className="rounded-2xl border border-line bg-white p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
+            CARS PER HOUR
+          </p>
+          <h2 className="font-display text-xl">Demand vs crew capacity</h2>
+          <p className="mt-1 text-sm text-muted">
+            Gold is forecast pulls. Navy ticks are already staged. Line is what
+            {` ${valets} valet${valets === 1 ? "" : "s"} can clear (~4 cars/hr each).`}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {(
+            [
+              ["weekday", "Weekday"],
+              ["saturday", "Saturday"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setDay(k)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-bold",
+                day === k ? "bg-navy text-cream" : "bg-line text-navy",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <label className="text-sm font-semibold text-navy" htmlFor="valet-count">
+          Valets on the floor
+        </label>
+        <input
+          id="valet-count"
+          type="range"
+          min={1}
+          max={4}
+          value={valets}
+          onChange={(e) => setValets(Number(e.target.value))}
+          className="w-40 accent-[var(--color-gold)]"
+        />
+        <span className="font-display text-2xl tabular-nums text-navy">{valets}</span>
+        <span className="text-sm text-muted">{valets * 4} cars/hr capacity</span>
+      </div>
+
+      <div className="mt-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={rows}
+            onClick={(state) => {
+              const label = (state as { activeLabel?: string } | undefined)?.activeLabel;
+              if (label) setPicked(label);
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
+            <Tooltip
+              formatter={(value, name) => [
+                value as number,
+                name === "demand"
+                  ? "Forecast pulls"
+                  : name === "done"
+                    ? "Already staged"
+                    : "Crew capacity",
+              ]}
+            />
+            <Bar dataKey="demand" name="demand" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="done" name="done" fill="var(--color-navy)" radius={[6, 6, 0, 0]} />
+            <Line
+              type="monotone"
+              dataKey="capacity"
+              name="capacity"
+              stroke="var(--color-ok, #1f6b4a)"
+              strokeWidth={2}
+              dot={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {rows.map((r) => (
+          <button
+            key={r.hour}
+            type="button"
+            onClick={() => setPicked(r.hour)}
+            className={cn(
+              "rounded-full px-2.5 py-1 text-xs font-bold tabular-nums",
+              picked === r.hour
+                ? "bg-gold text-navy"
+                : r.gap
+                  ? "bg-navy/10 text-navy"
+                  : "bg-line text-muted",
+            )}
+          >
+            {r.hour}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className={cn(
+          "mt-4 rounded-xl p-4",
+          tight ? "bg-gold/20 text-navy" : "bg-navy text-cream",
+        )}
+      >
+        <p className="text-[10px] font-bold tracking-[0.16em]">
+          {day === "weekday" ? "WEEKDAY" : "SATURDAY"} · {hour.hour}
+        </p>
+        <p className="mt-1 font-display text-2xl">
+          {hour.demand} pulls vs {hour.capacity} capacity
+        </p>
+        <p className="mt-1 text-sm opacity-80">
+          {tight
+            ? `Short ${hour.gap} cars. Typical wait ~${wait} min. Call a valet before this hour.`
+            : `Covered. Wait stays around ${wait} min if the floor holds at ${valets}.`}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 function Manager() {
   const tickets = useLane((s) => s.tickets);
@@ -106,6 +277,10 @@ function Manager() {
         </div>
 
         <div className="mt-4">
+          <CarsPerHour />
+        </div>
+
+        <div className="mt-4">
           <AttendantBoard />
         </div>
 
@@ -122,29 +297,11 @@ function Manager() {
           className="mt-6 text-sm font-semibold text-gold-2"
           onClick={() => setMore((v) => !v)}
         >
-          {more ? "Hide the rest of the board" : "More — forecast, restack, crew"}
+          {more ? "Hide the rest of the board" : "More — restack, crew, fingerprints"}
         </button>
 
         {more ? (
           <div className="mt-4 space-y-4">
-            <section className="rounded-2xl border border-line bg-white p-4">
-              <h2 className="font-display text-xl">Next 12 hours — predicted vs done</h2>
-              <p className="mt-1 text-sm text-muted">
-                Sample tower · last 14 days. Gold is the model.
-              </p>
-              <div className="mt-4 h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={FORECAST}>
-                    <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
-                    <Tooltip />
-                    <Bar dataKey="pulls" name="Forecast" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="actual" name="Already staged" fill="var(--color-navy)" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-
             <section className="rounded-2xl border border-line bg-white p-4">
               <h2 className="font-display text-xl">Tonight’s restack</h2>
               <p className="mt-1 text-sm text-muted">

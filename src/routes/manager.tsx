@@ -225,7 +225,7 @@ function Manager() {
           <div className="grid md:grid-cols-2">
             <div className="p-6">
               <p className="text-[10px] font-bold tracking-[0.18em] text-gold">
-                TOWER · PROPARK RUNWAY
+                TOWER · RUNWAY
               </p>
               <h1 className="mt-2 font-display text-3xl">
                 Will the 7:05 get off the ground?

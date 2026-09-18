@@ -145,7 +145,7 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
             Email · {selected.email}
           </p>
           <p className={cn("text-xs leading-relaxed", dark ? "text-cream/60" : "text-muted")}>
-            “ProPark Runway: please bring keys for the {pick.car} ({pick.plate})
+            “Runway: please bring keys for the {pick.car} ({pick.plate})
             · APT {selected.unit} to Cabinet 07. We will not come upstairs.”
           </p>
         </div>

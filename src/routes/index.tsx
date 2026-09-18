@@ -174,7 +174,7 @@ function Home() {
             Same product. Real garage. Sample residents.
           </h2>
           <p className="mt-2 max-w-xl text-sm text-cream/70">
-            50 Clinton Place, New Rochelle. ProPark on the curb. Eight minutes:
+            50 Clinton Place, New Rochelle. Valet on the curb. Eight minutes:
             resident Get going → valet nest → car is ready → they see the
             text.
           </p>

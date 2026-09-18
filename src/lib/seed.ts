@@ -38,8 +38,8 @@ export function ridePingCopy(t: {
   const inbound = t.type === "arrival";
   if (kind === "getting") {
     return inbound
-      ? `ProPark Runway: we’ve got your ${t.car} at the curb. Parking it now.`
-      : `ProPark Runway: we’re getting your ${t.car} (${t.plate}). We’ll text when it’s ready on the runway.`;
+      ? `Runway: we’ve got your ${t.car} at the curb. Parking it now.`
+      : `Runway: we’re getting your ${t.car} (${t.plate}). We’ll text when it’s ready on the runway.`;
   }
   return inbound
     ? `Parked in ${t.toStall ?? t.stall}. Keys in Cabinet 07.`
@@ -57,9 +57,9 @@ export function keyRequestCopy(
     ? `the ${car.car} (${car.plate}) · APT ${c.unit}`
     : `APT ${c.unit}`;
   return {
-    sms: `ProPark Runway · Two Clinton: please bring keys for ${who} to Cabinet 07 in the lobby. We will not come upstairs. Reply YES when they’re in.`,
+    sms: `Runway · Two Clinton: please bring keys for ${who} to Cabinet 07 in the lobby. We will not come upstairs. Reply YES when they’re in.`,
     emailSubject: `Keys needed at Cabinet 07 · ${who}`,
-    emailBody: `Hi ${first},\n\nThe valet desk at Two Clinton Park needs the keys for ${who} brought to Cabinet 07 in the lobby. Nobody is coming upstairs.\n\nOpen Runway and tap to confirm, or drop them in the cabinet on your way out.\n\n— ProPark Runway · 50 Clinton Place`,
+    emailBody: `Hi ${first},\n\nThe valet desk at Two Clinton Park needs the keys for ${who} brought to Cabinet 07 in the lobby. Nobody is coming upstairs.\n\nOpen Runway and tap to confirm, or drop them in the cabinet on your way out.\n\n— Runway · 50 Clinton Place`,
   };
 }
 

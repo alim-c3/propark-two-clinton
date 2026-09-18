@@ -1,4 +1,4 @@
-# PROPARK Runway · Two Clinton Park
+# Runway · Two Clinton Park
 
 Valet OS demo for Two Clinton Park / 50 Clinton Place, New Rochelle.
 

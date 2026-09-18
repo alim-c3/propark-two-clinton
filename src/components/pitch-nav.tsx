@@ -17,7 +17,7 @@ export function PitchNav() {
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link to="/" className="shrink-0 leading-tight">
           <span className="block text-[10px] font-bold tracking-[0.18em] text-gold">
-            PROPARK
+            RUNWAY
           </span>
           <span className="block font-display text-lg leading-none">Runway</span>
         </Link>

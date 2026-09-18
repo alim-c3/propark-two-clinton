@@ -37,7 +37,7 @@ export function Chrome({
     >
       <Link to="/" className="shrink-0 leading-tight">
         <span className="block text-[10px] font-bold tracking-[0.18em] text-gold-2">
-          PROPARK
+          RUNWAY
         </span>
         <span className="block font-display text-lg leading-none">Runway</span>
       </Link>

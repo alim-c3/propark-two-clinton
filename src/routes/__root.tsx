@@ -4,7 +4,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { AppToaster } from "@/components/toaster";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "PROPARK Runway";
+const APP_NAME = "Runway";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "ProPark Runway — resident retrieve, valet dispatch, and ops for Two Clinton Park.",
+          "Runway — resident retrieve, valet dispatch, and ops for Two Clinton Park.",
       },
       { name: "theme-color", content: "#0E1726" },
     ],

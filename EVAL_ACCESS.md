@@ -19,6 +19,8 @@ Flow: Demo URL → email → one-time code → Runway Evaluation Terms → Runwa
 | `DATABASE_URL` | Neon/Postgres in production. PGLite is used when unset |
 | `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Existing Better Auth deploy secrets |
 
+SHA-256 of `2026-09-30-v1`: `da5e5941ef2e2d5304941a5f2486407707d5f2e79841142e1ef31ecaf6bec81f`
+
 ## Publish v2 of the terms
 
 1. Copy the new agreement to `legal/versions/YYYY-MM-DD-v2.md`.

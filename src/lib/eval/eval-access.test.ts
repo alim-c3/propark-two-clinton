@@ -22,7 +22,8 @@ test("canonical agreement files are identical and hash-stable", () => {
   const frozen = readFileSync(join(root, "legal/versions/2026-09-30-v1.md"), "utf8");
   assert.equal(live, frozen);
   assert.match(live, /RUNWAY EVALUATION TERMS/);
-  assert.match(live, /Version: 2026-09-30-v1/);
+  assert.match(live, /\*\*Version:\*\* 2026-09-30-v1/);
+  assert.match(live, /## 28\. Electronic Acceptance/);
   assert.equal(sha256Hex(live), createHash("sha256").update(live, "utf8").digest("hex"));
 });
 

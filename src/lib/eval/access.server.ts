@@ -179,6 +179,23 @@ export async function upsertEvaluator(input: {
   };
 }
 
+export async function findEvaluatorByEmail(emailRaw: string): Promise<EvaluatorRow | null> {
+  const sql = await getSql();
+  const email = normalizeEmail(emailRaw);
+  const rows = await sql<EvaluatorRow>`
+    select id, user_id, email, name, organization, email_verified, access_status
+    from evaluators
+    where email = ${email}
+    limit 1
+  `;
+  return rows[0] ?? null;
+}
+
+export async function evaluatorHasCurrentTerms(email: string): Promise<boolean> {
+  const acceptance = await latestAcceptance(email, RUNWAY_EVALUATION_TERMS_VERSION);
+  return Boolean(acceptance);
+}
+
 export async function createEvalSession(evaluatorId: string): Promise<string> {
   const sql = await getSql();
   const sessionId = newId("sess");

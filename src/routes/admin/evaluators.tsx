@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { enforceEvalNavigation } from "@/lib/eval/guard";
 import {
   getEvalStatus,
   inviteEvalUser,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/eval/api";
 
 export const Route = createFileRoute("/admin/evaluators")({
+  beforeLoad: () => enforceEvalNavigation("/admin/evaluators"),
   component: AdminEvaluatorsPage,
 });
 

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { EvalShell } from "@/components/eval-shell";
 import { Button } from "@/components/ui/button";
-import { requestEvalCode, verifyEvalCode } from "@/lib/eval/api";
+import { startEvalSignIn, verifyEvalCode } from "@/lib/eval/api";
 
 type Search = { next?: string; email?: string };
 
@@ -14,6 +14,11 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+function destination(next: string | undefined, fallback = "/resident") {
+  if (!next || next === "/" || next === "/login") return fallback;
+  return next;
+}
+
 function LoginPage() {
   const { next, email: presetEmail } = Route.useSearch();
   const navigate = useNavigate();
@@ -24,12 +29,35 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function sendCode(event: FormEvent) {
+  async function routeAfterAuth(input: {
+    accessStatus: string;
+    acceptedCurrentTerms: boolean;
+  }) {
+    if (input.accessStatus === "revoked") {
+      await navigate({ to: "/eval/revoked" });
+      return;
+    }
+    if (input.accessStatus !== "active") {
+      await navigate({ to: "/eval/pending" });
+      return;
+    }
+    if (!input.acceptedCurrentTerms) {
+      await navigate({ to: "/eval/terms", search: { next: destination(next) } });
+      return;
+    }
+    await navigate({ to: destination(next) as "/" });
+  }
+
+  async function continueWithEmail(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const result = await requestEvalCode({ data: { email } });
+      const result = await startEvalSignIn({ data: { email } });
+      if (result.method === "email") {
+        await routeAfterAuth(result);
+        return;
+      }
       setSent(true);
       setNotice(
         result.delivered
@@ -39,7 +67,7 @@ function LoginPage() {
             : "A sign-in code was generated. If email delivery is not configured, check the server log.",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send a code.");
+      setError(err instanceof Error ? err.message : "Could not continue.");
     } finally {
       setBusy(false);
     }
@@ -50,8 +78,11 @@ function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await verifyEvalCode({ data: { email, code } });
-      await navigate({ to: "/eval/terms", search: { next: next || "/" } });
+      const result = await verifyEvalCode({ data: { email, code } });
+      await routeAfterAuth({
+        accessStatus: result.accessStatus,
+        acceptedCurrentTerms: false,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify that code.");
     } finally {
@@ -63,9 +94,10 @@ function LoginPage() {
     <EvalShell>
       <h1 className="mt-3 font-display text-3xl">Welcome to Runway</h1>
       <p className="mt-2 text-sm text-cream/70">
-        Enter your work email. We will send a one-time code to verify it.
+        Enter your work email to continue. New evaluators receive a one-time code.
+        Returning evaluators continue with email only.
       </p>
-      <form className="mt-6 space-y-3" onSubmit={sent ? verify : sendCode}>
+      <form className="mt-6 space-y-3" onSubmit={sent ? verify : continueWithEmail}>
         <label className="block text-xs font-semibold tracking-wide text-cream/70">
           Email
           <input
@@ -94,7 +126,7 @@ function LoginPage() {
         {notice ? <p className="text-sm text-gold">{notice}</p> : null}
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
         <Button type="submit" variant="gold" size="block" disabled={busy}>
-          {busy ? "Please wait…" : sent ? "Verify email" : "Send code"}
+          {busy ? "Please wait…" : sent ? "Verify email" : "Continue"}
         </Button>
       </form>
       {sent ? (

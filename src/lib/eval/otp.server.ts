@@ -8,7 +8,8 @@ import {
 } from "./config";
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
-import { requestMeta, upsertEvaluator, createEvalSession } from "./access.server";
+import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, evaluatorHasCurrentTerms } from "./access.server";
+import { canSkipOtp } from "./policy";
 
 export class EvalOtpError extends Error {
   readonly status: number;
@@ -25,6 +26,40 @@ function otpPepper(): string {
 
 function hashOtp(email: string, code: string): string {
   return sha256Hex(`${otpPepper()}:${normalizeEmail(email)}:${code}`);
+}
+
+export async function beginSignIn(emailRaw: string, origin: string) {
+  const email = normalizeEmail(emailRaw);
+  const existing = await findEvaluatorByEmail(email);
+  if (
+    existing &&
+    canSkipOtp({
+      emailVerified: existing.email_verified,
+      accessStatus: existing.access_status,
+    })
+  ) {
+    await createEvalSession(existing.id);
+    const acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
+    return {
+      ok: true as const,
+      method: "email" as const,
+      email,
+      accessStatus: existing.access_status,
+      acceptedCurrentTerms,
+    };
+  }
+  const otp = await requestOtp(email, origin);
+  return {
+    ok: true as const,
+    method: "otp" as const,
+    email,
+    accessStatus: existing?.access_status ?? "pending",
+    acceptedCurrentTerms: false,
+    delivered: otp.delivered,
+    provider: otp.provider,
+    expiresInSeconds: otp.expiresInSeconds,
+    devCode: otp.devCode,
+  };
 }
 
 export async function requestOtp(emailRaw: string, origin: string) {

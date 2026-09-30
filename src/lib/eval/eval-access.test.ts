@@ -6,6 +6,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import {
   canAccessProtectedRunway,
+  canSkipOtp,
   emailOnAllowlist,
   evalEnforcedFromEnv,
   hasCurrentAcceptance,
@@ -14,6 +15,7 @@ import {
   readEvalPolicy,
 } from "./policy.ts";
 import { isValidEmail, normalizeEmail, sha256Hex } from "./crypto.ts";
+import { isPublicEvalPath } from "./guard.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -134,4 +136,21 @@ test("enforcement follows env without depending on client storage", () => {
   assert.equal(evalEnforcedFromEnv({ RUNWAY_EVAL_ENFORCE: "false" }), false);
   assert.equal(isValidEmail("not-an-email"), false);
   assert.equal(isValidEmail("person@company.com"), true);
+});
+
+test("marketing home is public; product seats are not", () => {
+  assert.equal(isPublicEvalPath("/"), true);
+  assert.equal(isPublicEvalPath("/login"), true);
+  assert.equal(isPublicEvalPath("/features"), false);
+  assert.equal(isPublicEvalPath("/resident"), false);
+  assert.equal(isPublicEvalPath("/valet"), false);
+  assert.equal(isPublicEvalPath("/manager"), false);
+});
+
+test("returning verified evaluators skip OTP; first visit does not", () => {
+  assert.equal(canSkipOtp({ emailVerified: false, accessStatus: "active" }), false);
+  assert.equal(canSkipOtp({ emailVerified: true, accessStatus: "active" }), true);
+  assert.equal(canSkipOtp({ emailVerified: true, accessStatus: "pending" }), true);
+  assert.equal(canSkipOtp({ emailVerified: true, accessStatus: "revoked" }), false);
+  assert.equal(canSkipOtp({ emailVerified: true, accessStatus: null }), false);
 });

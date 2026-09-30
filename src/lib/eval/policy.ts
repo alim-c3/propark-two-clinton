@@ -65,6 +65,13 @@ export function hasCurrentAcceptance(input: {
   return input.acceptedVersion === input.requiredVersion;
 }
 
+export function canSkipOtp(input: {
+  emailVerified: boolean;
+  accessStatus: EvaluatorAccessStatus | null;
+}): boolean {
+  return input.emailVerified && input.accessStatus !== "revoked" && input.accessStatus !== null;
+}
+
 export function canAccessProtectedRunway(input: {
   emailVerified: boolean;
   accessStatus: EvaluatorAccessStatus;

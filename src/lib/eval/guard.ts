@@ -1,10 +1,20 @@
 import { redirect } from "@tanstack/react-router";
 import { getEvalStatus } from "./api";
 
-const PUBLIC_PREFIXES = ["/login", "/eval/terms", "/eval/agreement", "/eval/pending", "/eval/revoked", "/admin/evaluators"];
+const PUBLIC_PREFIXES = [
+  "/",
+  "/login",
+  "/eval/terms",
+  "/eval/agreement",
+  "/eval/pending",
+  "/eval/revoked",
+];
 
 export function isPublicEvalPath(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  if (pathname === "/") return true;
+  return PUBLIC_PREFIXES.some(
+    (prefix) => prefix !== "/" && (pathname === prefix || pathname.startsWith(`${prefix}/`)),
+  );
 }
 
 export async function enforceEvalNavigation(pathname: string) {

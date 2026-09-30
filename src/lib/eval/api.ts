@@ -35,6 +35,15 @@ export const getEvalStatus = createServerFn({ method: "POST" }).handler(
   },
 );
 
+export const startEvalSignIn = createServerFn({ method: "POST" })
+  .inputValidator((data: { email: string }) => data)
+  .handler(async ({ data }) => {
+    const email = normalizeEmail(data.email ?? "");
+    if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
+    const { beginSignIn } = await import("./otp.server");
+    return beginSignIn(email, requestOrigin());
+  });
+
 export const requestEvalCode = createServerFn({ method: "POST" })
   .inputValidator((data: { email: string }) => data)
   .handler(async ({ data }) => {

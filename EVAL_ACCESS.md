@@ -1,6 +1,11 @@
 # Runway evaluation access
 
-Flow: Demo URL → email → one-time code → Runway Evaluation Terms → Runway.
+Flow: Public marketing home → protected seat → email → one-time code (first visit only) → Runway Evaluation Terms → Runway.
+
+Returning verified evaluators enter the same email and continue without a new code. If the required terms version has changed, they accept again.
+
+Public: `/` only (plus `/login` and the terms screens).
+Protected: `/features`, `/resident`, `/valet`, `/manager`, and evaluation APIs.
 
 ## Environment
 

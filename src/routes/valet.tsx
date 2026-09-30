@@ -35,16 +35,15 @@ function jobAction(
   if (t.status === "claimed" || t.status === "staged") {
     return {
       verb: "finish",
-      label: plan.dir === "in" ? "Finish — parked" : "Finish — at the curb",
+      label:
+        plan.dir === "in"
+          ? "Done — parked"
+          : t.status === "claimed"
+            ? "Done and ping resident"
+            : "Done and ping resident",
     };
   }
   return null;
-}
-
-function jobHero(t: Ticket | undefined) {
-  if (!t) return "/flow-valet.jpg";
-  if (t.status === "staged" || t.status === "released") return "/flow-valet-curb.jpg";
-  return "/flow-valet.jpg";
 }
 
 function Valet() {
@@ -58,7 +57,7 @@ function Valet() {
   const liftCar = useLane((s) => s.lift);
   const takeCar = useLane((s) => s.takeCar);
   const cred = useLane((s) => s.cred);
-  const [more, setMore] = useState(true);
+  const [more, setMore] = useState(false);
 
   const open = tickets.filter(
     (t) => t.status !== "released" && t.status !== "cancelled",
@@ -115,8 +114,8 @@ function Valet() {
       }
       toast.success(
         planNow.dir === "in"
-          ? "You’ve got it. Park it, then tap Finish."
-          : "You’ve got it. Tap Finish when it’s at the curb.",
+          ? "Park it on the green stall."
+          : "Resident pinged — we’re bringing the car up.",
       );
       return;
     }
@@ -129,7 +128,9 @@ function Valet() {
     if (after?.status === "staged") {
       r = advance(t.id);
     }
-    toast[r.ok ? "success" : "error"](r.ok ? "Done. Next car is on the board." : r.message);
+    toast[r.ok ? "success" : "error"](
+      r.ok ? "Resident pinged — car is ready." : r.message,
+    );
   }
 
   return (
@@ -143,93 +144,93 @@ function Valet() {
         <h1 className="mt-2 font-display text-3xl">
           {!staff.you
             ? "Clock in. Then take the next car."
-            : next
-              ? next.blockedBy
-                ? `Nest first. ${next.blockedBy} is in the way.`
-                : "This is the car. Cleared for takeoff."
-              : "Waiting on Get going."}
+            : parking
+              ? "Park it. Green stall is yours."
+              : next
+                ? next.blockedBy
+                  ? `Nest first. ${next.blockedBy} is in the way.`
+                  : plan
+                    ? `${plan.from} → ${plan.to}`
+                    : "This is the car."
+                : "Waiting on Get going."}
         </h1>
 
         {!staff.you ? (
           <section className="mt-5 overflow-hidden rounded-2xl border border-navy-2 bg-navy-2">
-            <img
-              src="/flow-valet.jpg"
-              alt=""
-              className="h-48 w-full object-cover object-center"
-            />
+            <img src="/flow-valet.jpg" alt="" className="h-48 w-full object-cover object-center" />
             <div className="p-4">
               <p className="font-display text-2xl">I’m on the runway</p>
-              <p className="mt-1 text-sm text-cream/70">
-                One gold tap. The board already ranked the next pull — nest
-                first if someone’s in the way.
-              </p>
-              <Button
-                className="mt-4"
-                variant="gold"
-                size="block"
-                onClick={() => {
-                  const r = clock(true);
-                  toast[r.ok ? "success" : "error"](r.message);
-                }}
-              >
+              <Button className="mt-4" variant="gold" size="block" onClick={() => {
+                const r = clock(true);
+                toast[r.ok ? "success" : "error"](r.message);
+              }}>
                 I’m on the runway
               </Button>
             </div>
           </section>
         ) : (
           <>
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-navy-2 bg-navy-2 px-4 py-3">
-              <p className="text-sm text-cream/70">
-                {onBreak ? "On break" : "On duty · You"}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghostDark"
-                  size="sm"
-                  onClick={() => {
+            {!locked ? (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-navy-2 bg-navy-2 px-4 py-3">
+                <p className="text-sm text-cream/70">{onBreak ? "On break" : "On duty · You"}</p>
+                <div className="flex gap-2">
+                  <Button variant="ghostDark" size="sm" onClick={() => {
                     const r = setBreak(!onBreak);
                     toast[r.ok ? "success" : "error"](r.message);
-                  }}
-                >
-                  {onBreak ? "I’m back" : "Break"}
-                </Button>
-                <Button
-                  variant="ghostDark"
-                  size="sm"
-                  onClick={() => {
+                  }}>
+                    {onBreak ? "I’m back" : "Break"}
+                  </Button>
+                  <Button variant="ghostDark" size="sm" onClick={() => {
                     const r = clock(false);
                     toast[r.ok ? "success" : "error"](r.message);
-                  }}
-                >
-                  Heading out
-                </Button>
+                  }}>
+                    Heading out
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            {next ? (
+            {parking && next ? (
+              <section className="mt-4 rounded-2xl border border-gold/40 bg-navy-2 p-4">
+                <p className="text-[10px] font-bold tracking-[0.16em] text-gold">TAKE IT IN</p>
+                <p className="mt-2 font-display text-4xl leading-none text-gold">
+                  {plan?.from} → {destStall}
+                </p>
+                <p className="mt-2 text-sm text-cream/70">
+                  {next.car} · {next.color} · {next.plate}. Only the plate. Green stall blinks.
+                </p>
+                <div className="mt-3">
+                  <GarageMap
+                    compact
+                    tone="dark"
+                    dest={destStall}
+                    highlight={destStall}
+                    onPick={(id) => {
+                      const r = takeCar(id);
+                      if (r.message) toast[r.ok ? "success" : "error"](r.message);
+                    }}
+                  />
+                </div>
+                {action ? (
+                  <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>
+                    {action.label}
+                  </Button>
+                ) : null}
+              </section>
+            ) : next ? (
               <section className="mt-4 overflow-hidden rounded-2xl border border-gold/40 bg-navy-2">
-                <img
-                  src={jobHero(next)}
-                  alt=""
-                  className="h-44 w-full object-cover object-center"
-                />
+                {!locked ? (
+                  <img src="/flow-valet.jpg" alt="" className="h-44 w-full object-cover object-center" />
+                ) : null}
                 <div className="p-4">
                   <p className="text-[10px] font-bold tracking-[0.16em] text-gold">
-                    {plan?.dir === "in"
-                      ? "TAKE IT IN"
-                      : plan?.dir === "out"
-                        ? "TAKE IT OUT"
-                        : "DO THIS NEXT"}
+                    {plan?.dir === "in" ? "TAKE IT IN" : plan?.dir === "out" ? "TAKE IT OUT" : "DO THIS NEXT"}
                   </p>
-                  <p className="mt-1 font-display text-2xl">
-                    {next.car} · {next.color}
-                  </p>
-                  <p className="text-xs text-cream/55">
-                    {next.plate} · APT {next.unit}
-                  </p>
-                  <p className="mt-1 text-sm text-cream/70">
+                  <p className="mt-2 font-display text-4xl leading-tight text-gold">
                     {plan ? `${plan.from} → ${plan.to}` : next.stall}
                   </p>
+                  <p className="mt-2 font-display text-xl">{next.car} · {next.color}</p>
+                  <p className="text-xs text-cream/55">{next.plate} · APT {next.unit}</p>
                   {plan ? (
                     <p className="mt-3 rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-navy">
                       {plan.liftLabel}. {plan.destLabel}.
@@ -237,96 +238,41 @@ function Valet() {
                   ) : null}
                   {next.blockedBy ? (
                     <p className="mt-3 rounded-xl bg-gold/80 px-3 py-2 text-sm font-semibold text-navy">
-                      Nest first. {next.blockedBy} is in the way. Do not pull{" "}
-                      {next.plate} until that stall is clear.
+                      Nest first. {next.blockedBy} is in the way.
                     </p>
                   ) : null}
-                  {parking ? (
-                    <div className="mt-3">
-                      <p className="text-[10px] font-bold tracking-[0.18em] text-gold">
-                        PARK IN
-                      </p>
-                      <p className="font-display text-5xl text-gold">{destStall}</p>
-                      <p className="mt-1 text-sm text-cream/70">
-                        Gold ring on the map. Tap another open stall to change
-                        it, then Task completed.
-                      </p>
-                      <div className="mt-3">
-                        <GarageMap
-                          compact
-                          tone="dark"
-                          dest={destStall}
-                          highlight={destStall}
-                          onPick={(id) => {
-                            const r = takeCar(id);
-                            if (r.message)
-                              toast[r.ok ? "success" : "error"](r.message);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                  {locked && !parking ? (
+                  {locked && plan?.dir === "out" ? (
                     <p className="mt-3 rounded-xl border border-gold/50 bg-navy px-3 py-2 text-sm text-gold">
-                      This job is yours until you tap Finish.
                       {next.status === "claimed"
-                        ? " Resident pinged: we’re getting the car."
-                        : " Resident pinged: car is ready."}
+                        ? "Resident pinged: we’re bringing the car up."
+                        : "Resident pinged: car is ready at the curb."}
                     </p>
                   ) : null}
                   {action ? (
-                    <Button
-                      className="mt-4 hidden sm:flex"
-                      variant="gold"
-                      size="block"
-                      onClick={() => run(next)}
-                    >
+                    <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>
                       {action.label}
                     </Button>
                   ) : null}
-                  {next.status === "claimed" ? (
-                    <Flip
-                      to="/resident"
-                      label="Resident was pinged"
-                      why="Resident got the ping. Flip to their view, then come back to finish."
-                      tone="dark"
-                    />
+                  {locked && next.status === "claimed" && plan?.dir === "out" ? (
+                    <Flip to="/resident" label="Resident was pinged" why="They see we’re bringing the car up." tone="dark" />
                   ) : null}
                   {next.status === "staged" && plan?.dir === "out" ? (
-                    <Flip
-                      to="/resident"
-                      label="Open resident — car is ready"
-                      why="They see the text. Then hand it off."
-                      tone="dark"
-                    />
+                    <Flip to="/resident" label="Open resident — car is ready" why="Timer is running on their phone." tone="dark" />
                   ) : null}
                 </div>
               </section>
             ) : (
               <section className="mt-5 rounded-2xl border border-gold/40 bg-navy-2 p-4">
                 <p className="font-display text-2xl">Runway is clear.</p>
-                <p className="mt-1 text-sm text-cream/70">
-                  Nobody has tapped Get going yet. Open resident, pick a unit,
-                  then this board gets the next job.
-                </p>
-                <Flip
-                  to="/resident"
-                  label="Open resident — Get going"
-                  why="That’s the 8-minute demo."
-                  tone="dark"
-                />
+                <Flip to="/resident" label="Open resident — Get going" why="That’s the demo." tone="dark" />
               </section>
             )}
           </>
         )}
 
-        {staff.you ? (
+        {staff.you && !locked ? (
           <>
-            <button
-              type="button"
-              className="mt-6 text-sm font-semibold text-gold"
-              onClick={() => setMore((v) => !v)}
-            >
+            <button type="button" className="mt-6 text-sm font-semibold text-gold" onClick={() => setMore((v) => !v)}>
               {more ? "Hide the rest of the floor" : "More on the floor"}
             </button>
             {more ? (
@@ -334,37 +280,28 @@ function Valet() {
                 <YourShift />
                 <HostStand tickets={tickets} staff={staff} tone="dark" />
                 <KeyReturn />
-                {!parking ? (
-                  <GarageMap
-                    tone="dark"
-                    highlight={next?.stall === "curb" ? next?.toStall : next?.stall}
-                    dest={plan ? stallCode(plan.to) ?? undefined : undefined}
-                    onPick={(id) => {
-                      if (locked && next?.type !== "arrival") {
-                        toast.error("Finish this car first.");
-                        return;
-                      }
-                      const r = takeCar(id);
-                      if (r.message) toast[r.ok ? "success" : "error"](r.message);
-                    }}
-                  />
-                ) : null}
+                <GarageMap
+                  tone="dark"
+                  highlight={next?.stall === "curb" ? next?.toStall : next?.stall}
+                  dest={plan ? stallCode(plan.to) ?? undefined : undefined}
+                  onPick={(id) => {
+                    const r = takeCar(id);
+                    if (r.message) toast[r.ok ? "success" : "error"](r.message);
+                  }}
+                />
                 {others.length ? (
                   <>
                     <h2 className="font-display text-xl">After this</h2>
                     <div className="flex flex-col gap-3">
                       {others.map((t) => {
                         const a = jobAction(t);
-                        const mineJob = t.status === "open" || t.valet === "You";
                         return (
                           <TicketCard
                             key={t.id}
                             ticket={t}
                             tone="dark"
-                            action={!locked && mineJob ? a?.label : undefined}
-                            onAction={
-                              !locked && mineJob && a ? () => run(t) : undefined
-                            }
+                            action={t.status === "open" || t.valet === "You" ? a?.label : undefined}
+                            onAction={a && (t.status === "open" || t.valet === "You") ? () => run(t) : undefined}
                           />
                         );
                       })}

@@ -23,6 +23,13 @@ function isLive(t: Ticket) {
   return t.status === "open" || t.status === "claimed" || t.status === "staged";
 }
 
+function fmtReady(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
 function Resident() {
   const tickets = useLane((s) => s.tickets);
   const staff = useLane((s) => s.staff);
@@ -59,8 +66,14 @@ function Resident() {
   );
   const ride = ridePings.find((p) => p.unit === me.unit);
 
+  const readyMs =
+    live?.status === "staged" && live.stagedAt ? now - live.stagedAt : 0;
+  const readyMin = readyMs / 60000;
+  const ping5 = live?.status === "staged" && readyMin >= 5;
+  const ping8 = live?.status === "staged" && readyMin >= 8;
+
   const [confirm, setConfirm] = useState(false);
-  const [more, setMore] = useState(true);
+  const [more, setMore] = useState(false);
   const [sheet, setSheet] = useState<TicketType | null>(null);
   const [when, setWhen] = useState(() => {
     const d = new Date();
@@ -80,7 +93,7 @@ function Resident() {
     live?.status === "staged"
       ? "Your car is ready on the runway."
       : live?.status === "claimed"
-        ? "We’re getting your car."
+        ? "We’re bringing your car up."
         : spot
           ? `${placeLine(spot.place)}.`
           : live?.type === "now"
@@ -88,9 +101,9 @@ function Resident() {
             : `Hi ${me.first}. We’ll help you take off.`;
   const cap =
     live?.status === "staged"
-      ? "The garage already knew you wanted it."
+      ? `Ready for ${fmtReady(readyMs)}. Clinton Place curb.`
       : live?.status === "claimed"
-        ? "A valet has it. We’ll ping you when it’s on the runway."
+        ? "A valet has it on the lift. You’ll get a ping when it’s at the curb."
         : spot
           ? `${spot.stillMin <= 1 ? "About a minute" : `${spot.stillMin} min`} · still in ${live?.stall}.`
           : standing
@@ -132,6 +145,34 @@ function Resident() {
         <h1 className="mt-2 font-display text-3xl text-navy">{h1}</h1>
         <p className="mt-2 text-sm text-muted">{cap}</p>
 
+        {live?.status === "staged" ? (
+          <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">READY AT THE CURB</p>
+            <p className="mt-1 font-display text-5xl tabular-nums text-navy">{fmtReady(readyMs)}</p>
+            <p className="mt-1 text-sm text-navy/80">How long the car has been waiting for you.</p>
+            {ping5 ? (
+              <p className="mt-3 rounded-xl bg-navy px-3 py-2 text-sm text-cream">
+                Ping at 5:00 — your car is still on the runway.
+              </p>
+            ) : null}
+            {ping8 ? (
+              <p className="mt-2 rounded-xl bg-navy px-3 py-2 text-sm text-cream">
+                Ping at 8:00 — 3 minutes after the first reminder. Come down.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {live?.status === "claimed" ? (
+          <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">TEXT · {me.phone}</p>
+            <p className="mt-1 font-display text-xl text-navy">We’re bringing your car up.</p>
+            <p className="mt-1 text-sm text-navy/80">
+              Valet claimed it. You only get this ping on the way up — not when a car is going down.
+            </p>
+          </section>
+        ) : null}
+
         <CurbPager
           tickets={tickets}
           staff={staff}
@@ -146,9 +187,6 @@ function Resident() {
             ) : (
               <div className="rounded-xl border border-gold bg-cream p-4">
                 <p className="font-display text-lg text-navy">Ready to take off?</p>
-                <p className="mt-1 text-sm text-muted">
-                  You’ll get your place in line and a wait — nothing else.
-                </p>
                 <div className="mt-3 flex flex-col gap-2">
                   <Button variant="gold" size="block" onClick={go}>
                     Yes — let’s take off
@@ -163,27 +201,14 @@ function Resident() {
         </CurbPager>
 
         {live?.type === "now" && live.status === "open" ? (
-          <Flip
-            to="/valet"
-            label={`Open valet — they have your ${me.car}`}
-            why="Clock in. Nest is B-13. One job until it’s ready."
-          />
-        ) : null}
-        {live?.status === "claimed" ? (
-          <p className="mt-4 rounded-2xl bg-gold/20 px-4 py-3 text-sm text-navy">
-            A valet is on it. Stay here — you’ll get a ping when it’s ready.
-          </p>
+          <Flip to="/valet" label={`Open valet — they have your ${me.car}`} why="Clock in. One job until it’s ready." />
         ) : null}
 
-        {ride ? (
+        {ride && live?.status !== "claimed" && live?.status !== "staged" ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-              TEXT · {me.phone}
-            </p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">TEXT · {me.phone}</p>
             <p className="mt-1 font-display text-xl text-navy">
-              {ride.kind === "ready"
-                ? "Your car is ready on the runway."
-                : "We’re getting your car."}
+              {ride.kind === "ready" ? "Your car is ready on the runway." : "We’re getting your car."}
             </p>
             <p className="mt-1 text-sm text-navy/80">{ride.sms}</p>
           </section>
@@ -191,56 +216,37 @@ function Resident() {
 
         {keyAsk ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-              KEYS · TEXT + EMAIL
-            </p>
-            <p className="mt-1 font-display text-xl text-navy">
-              The garage needs your keys.
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              Drop them at Cabinet 07 in the lobby. Nobody is coming upstairs.
-            </p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">KEYS · TEXT + EMAIL</p>
+            <p className="mt-1 font-display text-xl text-navy">The garage needs your keys.</p>
             <div className="mt-3 space-y-2">
               <div className="rounded-xl bg-white px-3 py-3 text-sm text-navy">
                 <p className="flex items-center gap-2 text-[10px] font-bold tracking-wide text-gold-2">
-                  <Smartphone className="size-3.5" />
-                  TEXT · {me.phone}
+                  <Smartphone className="size-3.5" /> TEXT · {me.phone}
                 </p>
                 <p className="mt-1">{keyAsk.sms}</p>
               </div>
               <div className="rounded-xl bg-white px-3 py-3 text-sm text-navy">
                 <p className="flex items-center gap-2 text-[10px] font-bold tracking-wide text-gold-2">
-                  <Mail className="size-3.5" />
-                  EMAIL · {me.email}
+                  <Mail className="size-3.5" /> EMAIL · {me.email}
                 </p>
                 <p className="mt-1 font-semibold">{keyAsk.emailSubject}</p>
               </div>
             </div>
-            <Button
-              className="mt-3"
-              variant="navy"
-              size="block"
-              onClick={() => {
-                const r = ackKeys(keyAsk.id);
-                toast[r.ok ? "success" : "error"](r.message);
-              }}
-            >
+            <Button className="mt-3" variant="navy" size="block" onClick={() => {
+              const r = ackKeys(keyAsk.id);
+              toast[r.ok ? "success" : "error"](r.message);
+            }}>
               They’re in the cabinet
             </Button>
           </section>
         ) : null}
 
         {live && live.type === "now" && live.status === "open" ? (
-          <Button
-            className="mt-4"
-            variant="danger"
-            size="block"
-            onClick={() => {
-              if (!window.confirm("Cancel this pickup?")) return;
-              const r = cancel(live.id);
-              toast[r.ok ? "success" : "error"](r.message);
-            }}
-          >
+          <Button className="mt-4" variant="danger" size="block" onClick={() => {
+            if (!window.confirm("Cancel this pickup?")) return;
+            const r = cancel(live.id);
+            toast[r.ok ? "success" : "error"](r.message);
+          }}>
             Cancel this pickup
           </Button>
         ) : null}
@@ -250,11 +256,7 @@ function Resident() {
           {live?.status === "staged" ? " · at Clinton Place curb" : ` · ${me.stall}`}
         </p>
 
-        <button
-          type="button"
-          className={cn("mt-6 text-sm font-semibold", more ? "text-navy" : "text-gold-2")}
-          onClick={() => setMore((v) => !v)}
-        >
+        <button type="button" className={cn("mt-6 text-sm font-semibold", more ? "text-navy" : "text-gold-2")} onClick={() => setMore((v) => !v)}>
           {more ? "Hide more" : "More — schedule, cred, other requests"}
         </button>
 
@@ -262,100 +264,51 @@ function Resident() {
           <div className="mt-4 space-y-4">
             <StreetCredCard unit={me.unit} />
             {standing ? (
-              <p className="text-sm text-muted">
-                Thursday 7:05 is already on your list.
-              </p>
+              <p className="text-sm text-muted">Thursday 7:05 is already on your list.</p>
             ) : (
-              <Button
-                variant="navy"
-                size="block"
-                onClick={() => {
-                  const r = schedule(
-                    "scheduled",
-                    me.standing ?? "Thu 7:05",
-                    "Standing Metro-North run — warm the cabin",
-                  );
-                  toast[r.ok ? "success" : "error"](r.message);
-                }}
-              >
+              <Button variant="navy" size="block" onClick={() => {
+                const r = schedule("scheduled", me.standing ?? "Thu 7:05", "Standing Metro-North run — warm the cabin");
+                toast[r.ok ? "success" : "error"](r.message);
+              }}>
                 Thursday 7:05
               </Button>
             )}
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="ghost" size="block" onClick={() => setSheet("scheduled")}>
-                Pick a time
-              </Button>
-              <Button variant="ghost" size="block" onClick={() => setSheet("arrival")}>
-                I’m on my way in
-              </Button>
+              <Button variant="ghost" size="block" onClick={() => setSheet("scheduled")}>Pick a time</Button>
+              <Button variant="ghost" size="block" onClick={() => setSheet("arrival")}>I’m on my way in</Button>
             </div>
             {sheet ? (
-              <form
-                className="border-t border-line pt-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const r = schedule(sheet, when.replace("T", " "), note);
-                  toast[r.ok ? "success" : "error"](r.message);
-                  if (r.ok) {
-                    setSheet(null);
-                    setNote("");
-                  }
-                }}
-              >
-                <p className="font-display text-lg">
-                  {sheet === "arrival"
-                    ? "We’ll hold a curb stall."
-                    : "When should we have it ready?"}
-                </p>
+              <form className="border-t border-line pt-4" onSubmit={(e) => {
+                e.preventDefault();
+                const r = schedule(sheet, when.replace("T", " "), note);
+                toast[r.ok ? "success" : "error"](r.message);
+                if (r.ok) { setSheet(null); setNote(""); }
+              }}>
+                <p className="font-display text-lg">{sheet === "arrival" ? "We’ll hold a curb stall." : "When should we have it ready?"}</p>
                 <label className="mt-3 block text-xs font-bold">When</label>
-                <input
-                  type="datetime-local"
-                  value={when}
-                  onChange={(e) => setWhen(e.target.value)}
-                  className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm"
-                />
+                <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
                 <label className="block text-xs font-bold">Anything we should know?</label>
-                <input
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Child seat, groceries, charge to 80%…"
-                  className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm"
-                />
+                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Child seat, groceries…" className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
                 <div className="flex gap-2">
-                  <Button type="submit" variant="gold">
-                    Save this for me
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={() => setSheet(null)}>
-                    Never mind
-                  </Button>
+                  <Button type="submit" variant="gold">Save this for me</Button>
+                  <Button type="button" variant="ghost" onClick={() => setSheet(null)}>Never mind</Button>
                 </div>
               </form>
             ) : null}
             <h2 className="font-display text-xl">Your requests</h2>
             <div className="flex flex-col gap-3">
-              {mine
-                .filter(
-                  (t) =>
-                    t.id !== live?.id &&
-                    t.status !== "cancelled" &&
-                    t.status !== "released",
-                )
-                .map((t) => (
-                  <TicketCard
-                    key={t.id}
-                    ticket={t}
-                    audience="resident"
-                    onCancel={
-                      t.status === "open"
-                        ? () => {
-                            if (!window.confirm("Cancel this request?")) return;
-                            const r = cancel(t.id);
-                            toast[r.ok ? "success" : "error"](r.message);
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+              {mine.filter((t) => t.id !== live?.id && t.status !== "cancelled" && t.status !== "released").map((t) => (
+                <TicketCard
+                  key={t.id}
+                  ticket={t}
+                  audience="resident"
+                  onCancel={t.status === "open" ? () => {
+                    if (!window.confirm("Cancel this request?")) return;
+                    const r = cancel(t.id);
+                    toast[r.ok ? "success" : "error"](r.message);
+                  } : undefined}
+                />
+              ))}
             </div>
           </div>
         ) : null}

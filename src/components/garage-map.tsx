@@ -47,36 +47,36 @@ function occupancy(tickets: Ticket[]): Stall[] {
 type Spot = { id: string; x: number; y: number; w: number; h: number; stack?: boolean };
 
 const SPOTS: Spot[] = [
-  { id: "B-12", x: 4.2, y: 8, w: 7.2, h: 9, stack: true },
-  { id: "B-14", x: 4.2, y: 17.4, w: 7.2, h: 9, stack: true },
-  { id: "B-16", x: 4.2, y: 26.8, w: 7.2, h: 9, stack: true },
-  { id: "B-18", x: 4.2, y: 36.2, w: 7.2, h: 9, stack: true },
-  { id: "A-01", x: 13.5, y: 6.5, w: 7.4, h: 7.4 },
-  { id: "A-02", x: 21.4, y: 6.5, w: 7.4, h: 7.4 },
-  { id: "A-03", x: 29.3, y: 6.5, w: 7.4, h: 7.4 },
-  { id: "A-04", x: 37.2, y: 6.5, w: 7.4, h: 7.4 },
-  { id: "A-05", x: 13.5, y: 15, w: 7.4, h: 7.4 },
-  { id: "A-06", x: 21.4, y: 15, w: 7.4, h: 7.4 },
-  { id: "R-01", x: 45.5, y: 18, w: 7, h: 7 },
-  { id: "R-02", x: 45.5, y: 26, w: 7, h: 7 },
-  { id: "B-11", x: 13.5, y: 48, w: 7.2, h: 6.6 },
-  { id: "B-13", x: 21.2, y: 48, w: 7.2, h: 6.6 },
-  { id: "B-15", x: 28.9, y: 48, w: 7.2, h: 6.6 },
-  { id: "B-17", x: 13.5, y: 55.2, w: 7.2, h: 6.6 },
-  { id: "B-19", x: 21.2, y: 55.2, w: 7.2, h: 6.6 },
-  { id: "B-21", x: 28.9, y: 55.2, w: 7.2, h: 6.6 },
-  { id: "C-01", x: 48, y: 58.5, w: 6.4, h: 6.2 },
-  { id: "C-02", x: 55, y: 58.5, w: 6.4, h: 6.2 },
-  { id: "C-03", x: 62, y: 58.5, w: 6.4, h: 6.2 },
-  { id: "C-04", x: 69, y: 58.5, w: 6.4, h: 6.2 },
-  { id: "C-05", x: 48, y: 82, w: 6.4, h: 6.2 },
-  { id: "C-06", x: 55, y: 82, w: 6.4, h: 6.2 },
-  { id: "P-01", x: 62, y: 82, w: 6.4, h: 6.2 },
-  { id: "P-02", x: 69, y: 82, w: 6.4, h: 6.2 },
-  { id: "P-03", x: 48, y: 88.6, w: 6.4, h: 6.2 },
-  { id: "P-04", x: 55, y: 88.6, w: 6.4, h: 6.2 },
-  { id: "P-05", x: 62, y: 88.6, w: 6.4, h: 6.2 },
-  { id: "P-06", x: 69, y: 88.6, w: 6.4, h: 6.2 },
+  { id: "B-12", x: 8, y: 18, w: 34, h: 16, stack: true },
+  { id: "B-14", x: 8, y: 35, w: 34, h: 16, stack: true },
+  { id: "B-16", x: 8, y: 52, w: 34, h: 16, stack: true },
+  { id: "B-18", x: 8, y: 69, w: 34, h: 16, stack: true },
+  { id: "A-01", x: 210, y: 16, w: 26, h: 34 },
+  { id: "A-02", x: 238, y: 16, w: 26, h: 34 },
+  { id: "A-03", x: 266, y: 16, w: 26, h: 34 },
+  { id: "A-04", x: 294, y: 16, w: 26, h: 34 },
+  { id: "A-05", x: 210, y: 96, w: 26, h: 34 },
+  { id: "A-06", x: 238, y: 96, w: 26, h: 34 },
+  { id: "R-01", x: 512, y: 16, w: 34, h: 16 },
+  { id: "R-02", x: 512, y: 34, w: 34, h: 16 },
+  { id: "B-11", x: 210, y: 220, w: 34, h: 16 },
+  { id: "B-13", x: 248, y: 220, w: 34, h: 16 },
+  { id: "B-15", x: 420, y: 220, w: 34, h: 16 },
+  { id: "B-17", x: 210, y: 238, w: 34, h: 16 },
+  { id: "B-19", x: 248, y: 238, w: 34, h: 16 },
+  { id: "B-21", x: 420, y: 238, w: 34, h: 16 },
+  { id: "C-01", x: 280, y: 310, w: 26, h: 34 },
+  { id: "C-02", x: 308, y: 310, w: 26, h: 34 },
+  { id: "C-03", x: 336, y: 310, w: 26, h: 34 },
+  { id: "C-04", x: 364, y: 310, w: 26, h: 34 },
+  { id: "C-05", x: 280, y: 400, w: 26, h: 34 },
+  { id: "C-06", x: 308, y: 400, w: 26, h: 34 },
+  { id: "P-01", x: 336, y: 400, w: 26, h: 34 },
+  { id: "P-02", x: 364, y: 400, w: 26, h: 34 },
+  { id: "P-03", x: 280, y: 436, w: 26, h: 34 },
+  { id: "P-04", x: 308, y: 436, w: 26, h: 34 },
+  { id: "P-05", x: 336, y: 436, w: 26, h: 34 },
+  { id: "P-06", x: 364, y: 436, w: 26, h: 34 },
 ];
 
 function fillFor(s: Stall | undefined, hit: boolean, dest?: string) {
@@ -102,6 +102,8 @@ function Plate({
 }) {
   const byId = (id: string) => stalls.find((s) => s.id === id);
   const three = level === "3B";
+  const slab = dark ? "#2a3340" : "#e2dac8";
+  const drive = dark ? "#3a4452" : "#b0a896";
   return (
     <section className={cn("overflow-hidden rounded-2xl border", dark ? "border-navy-2 bg-[#1a2433] text-cream" : "border-line bg-[#f3efe4] text-navy")}>
       <div className="flex flex-wrap items-start justify-between gap-2 px-4 pt-4">
@@ -109,7 +111,7 @@ function Plate({
           <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">{three ? "GARAGE 3B PLAN · A-101" : "GARAGE 2B SLAB · A-132"}</p>
           <p className={cn("mt-1 max-w-xl text-sm", dark ? "text-cream/70" : "text-muted")}>
             {three
-              ? "Same L as the wall sheet. West stackers. Core X. Two-way drive into the east wing. Vehicle elevator at the tip."
+              ? "8.5×18 bays. 24' two-way aisles. West stackers two-deep. Core X. East wing to the vehicle elevator."
               : "Same L one level down. Landing at the vehicle elevator is I’m here."}
           </p>
         </div>
@@ -118,64 +120,62 @@ function Plate({
         </p>
       </div>
       <div className="relative mx-auto w-full max-w-5xl p-3">
-        <svg viewBox="0 0 1000 720" className="h-auto w-full" role="img" aria-label={`${level} garage plate`}>
-          <rect width="1000" height="720" fill={dark ? "#121820" : "#efe8d8"} />
-          <path d="M40 36 H560 V250 H430 V430 H40 Z" fill={dark ? "#2a3340" : "#e4dcc8"} stroke="#152033" strokeWidth="3" />
-          <path d="M40 430 H960 V684 H40 Z" fill={dark ? "#2a3340" : "#e4dcc8"} stroke="#152033" strokeWidth="3" />
-          <rect x="48" y="48" width="84" height="360" fill="none" stroke="#152033" strokeWidth="1.2" strokeDasharray="4 3" />
-          <text x="90" y="240" textAnchor="middle" fontSize="11" fill="#152033" fontWeight="700">S S S S</text>
-          <text x="90" y="256" textAnchor="middle" fontSize="9" fill="#6b6456">STACKERS</text>
-          <rect x="248" y="268" width="130" height="118" fill={dark ? "#152033" : "#cfc6b2"} stroke="#152033" strokeWidth="2" />
-          <text x="313" y="318" textAnchor="middle" fontSize="11" fill={dark ? "#e8c547" : "#152033"} fontWeight="700">ELEV LOBBY</text>
-          <text x="313" y="336" textAnchor="middle" fontSize="10" fill={dark ? "#e8c547" : "#152033"}>STAIR</text>
+        <svg viewBox="0 0 620 500" className="h-auto w-full" role="img" aria-label={`${level} garage plate`}>
+          <rect width="620" height="500" fill={dark ? "#121820" : "#efe8d8"} />
+          <rect x="8" y="8" width="352" height="296" fill={slab} stroke="#152033" strokeWidth="3" />
+          <rect x="8" y="296" width="604" height="192" fill={slab} stroke="#152033" strokeWidth="3" />
+          <line x1="360" y1="8" x2="360" y2="296" stroke="#152033" strokeWidth="3" />
+          <rect x="76" y="12" width="48" height="460" fill={drive} />
+          <rect x="76" y="44" width="276" height="48" fill={drive} />
+          <rect x="76" y="164" width="276" height="48" fill={drive} />
+          <rect x="256" y="12" width="48" height="284" fill={drive} />
+          <rect x="76" y="332" width="436" height="48" fill={drive} />
+          <text x="160" y="72" fontSize="9" fill="#152033" fontWeight="700">TWO-WAY</text>
+          <text x="280" y="358" fontSize="9" fill="#152033" fontWeight="700">WING AISLE · TWO-WAY</text>
+          <rect x="12" y="12" width="60" height="170" fill="none" stroke="#152033" strokeWidth="1" />
+          <text x="42" y="188" textAnchor="middle" fontSize="8" fill="#6b6456">STACKERS</text>
+          <rect x="12" y="196" width="60" height="96" fill={dark ? "#3a3f46" : "#c6c2ba"} stroke="#152033" />
+          <text x="42" y="248" textAnchor="middle" fontSize="8" fill="#6b6456">RAMP</text>
+          <rect x="160" y="212" width="88" height="84" fill={dark ? "#152033" : "#cfc6b2"} stroke="#152033" strokeWidth="2" />
+          <text x="204" y="250" textAnchor="middle" fontSize="10" fontWeight="700" fill={dark ? "#e8c547" : "#152033"}>ELEV LOBBY</text>
+          <text x="204" y="266" textAnchor="middle" fontSize="9" fill={dark ? "#e8c547" : "#152033"}>STAIR</text>
           {three ? (
             <>
-              <text x="360" y="210" textAnchor="middle" fontSize="28" fontWeight="800" fill="#c9a227">X</text>
-              <text x="360" y="228" textAnchor="middle" fontSize="10" fill="#c9a227" fontWeight="700">YOU ARE HERE</text>
+              <text x="220" y="118" textAnchor="middle" fontSize="22" fontWeight="800" fill="#c9a227">X</text>
+              <text x="220" y="132" textAnchor="middle" fontSize="8" fill="#c9a227" fontWeight="700">YOU ARE HERE</text>
             </>
-          ) : (
-            <text x="313" y="354" textAnchor="middle" fontSize="10" fill="#6b6456">CORE</text>
-          )}
-          <path d="M140 400 H400" stroke="#9a917c" strokeWidth="22" />
-          <path d="M400 400 V500 H780" stroke="#9a917c" strokeWidth="22" />
-          <polygon points="400,389 418,400 400,411" fill="#152033" />
-          <polygon points="140,389 122,400 140,411" fill="#152033" />
-          <polygon points="780,489 798,500 780,511" fill="#152033" />
-          <text x="270" y="396" textAnchor="middle" fontSize="9" fill="#152033" fontWeight="700">TWO-WAY DRIVE</text>
-          <text x="590" y="496" textAnchor="middle" fontSize="9" fill="#152033" fontWeight="700">EAST WING AISLE</text>
-          <rect x="800" y="448" width="148" height="220" fill={three ? "#d7c9a3" : "#c9a227"} stroke="#152033" strokeWidth="2" />
-          <text x="874" y="500" textAnchor="middle" fontSize="11" fontWeight="700" fill="#152033">VEHICLE ELEV</text>
-          <text x="874" y="518" textAnchor="middle" fontSize="10" fill="#152033">MACHINE</text>
-          <text x="874" y="536" textAnchor="middle" fontSize="10" fill="#152033">CAB</text>
-          {!three ? <text x="874" y="568" textAnchor="middle" fontSize="11" fontWeight="800" fill="#152033">I&apos;M HERE</text> : null}
-          <text x="874" y="650" textAnchor="middle" fontSize="9" fill="#152033">RAMP / LIFT</text>
+          ) : null}
+          <rect x="512" y="296" width="88" height="192" fill={three ? "#d7c9a3" : "#c9a227"} stroke="#152033" strokeWidth="2" />
+          <text x="556" y="360" textAnchor="middle" fontSize="10" fontWeight="700" fill="#152033">VEHICLE</text>
+          <text x="556" y="376" textAnchor="middle" fontSize="10" fontWeight="700" fill="#152033">ELEVATOR</text>
+          <text x="556" y="396" textAnchor="middle" fontSize="9" fill="#152033">MACHINE / CAB</text>
+          {!three ? <text x="556" y="420" textAnchor="middle" fontSize="10" fontWeight="800" fill="#152033">I&apos;M HERE</text> : null}
+          <text x="556" y="468" textAnchor="middle" fontSize="8" fill="#152033">RAMP / LIFT</text>
           <g fill="#c45a12">
-            <circle cx="300" cy="250" r="7" />
-            <circle cx="250" cy="390" r="7" />
-            <circle cx="640" cy="560" r="7" />
-            <circle cx="874" cy="620" r="7" />
+            <circle cx="220" cy="300" r="5" />
+            <circle cx="240" cy="128" r="5" />
+            <circle cx="400" cy="390" r="5" />
+            <circle cx="556" cy="452" r="5" />
           </g>
-          <text x="314" y="246" fontSize="9" fill="#c45a12" fontWeight="700">FE</text>
-          <text x="262" y="394" fontSize="9" fill="#c45a12" fontWeight="700">FE</text>
-          <text x="652" y="564" fontSize="9" fill="#c45a12" fontWeight="700">FE</text>
-          <text x="886" y="624" fontSize="9" fill="#c45a12" fontWeight="700">FE</text>
+          <text x="228" y="304" fontSize="8" fill="#c45a12" fontWeight="700">FE</text>
+          <text x="564" y="456" fontSize="8" fill="#c45a12" fontWeight="700">FE</text>
           {SPOTS.map((p) => {
             const s = byId(p.id);
             const active = sel === p.id || highlight === p.id || dest === p.id || hitIds.has(p.id);
             const full = Boolean(s?.plate);
             return (
-              <g key={p.id} onClick={() => onPick(p.id)} className="cursor-pointer">
-                <rect x={p.x * 10} y={p.y * 7.2} width={p.w * 10} height={p.h * 7.2} fill={fillFor(s, hitIds.has(p.id), dest)} stroke={active ? "#e8c547" : "#152033"} strokeWidth={active ? 3 : 1.2} />
-                <line x1={p.x * 10} y1={p.y * 7.2} x2={p.x * 10 + p.w * 10} y2={p.y * 7.2 + p.h * 7.2} stroke="rgba(21,32,51,0.25)" strokeWidth="0.8" />
-                <line x1={p.x * 10 + p.w * 10} y1={p.y * 7.2} x2={p.x * 10} y2={p.y * 7.2 + p.h * 7.2} stroke="rgba(21,32,51,0.25)" strokeWidth="0.8" />
-                <text x={p.x * 10 + (p.w * 10) / 2} y={p.y * 7.2 + 12} textAnchor="middle" fontSize="8" fill={full && !s?.blockedBy ? "#f4efe4" : "#152033"} fontWeight="700">{p.id}{p.stack ? " ↑" : ""}</text>
+              <g key={`${level}-${p.id}`} onClick={() => onPick(p.id)} className="cursor-pointer">
+                <rect x={p.x} y={p.y} width={p.w} height={p.h} fill={fillFor(s, hitIds.has(p.id), dest)} stroke={active ? "#e8c547" : "#152033"} strokeWidth={active ? 2.4 : 1} />
+                <line x1={p.x} y1={p.y} x2={p.x + p.w} y2={p.y + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.7" />
+                <line x1={p.x + p.w} y1={p.y} x2={p.x} y2={p.y + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.7" />
+                <text x={p.x + p.w / 2} y={p.y + 11} textAnchor="middle" fontSize="8" fill={full && !s?.blockedBy ? "#f4efe4" : "#152033"} fontWeight="700">{p.id}{p.stack ? " ↑" : ""}</text>
               </g>
             );
           })}
-          <text x="300" y="28" textAnchor="middle" fontSize="10" fill="#6b6456" fontWeight="700">NORTH BLOCK</text>
-          <text x="90" y="708" textAnchor="middle" fontSize="10" fill="#6b6456" fontWeight="700">WEST</text>
-          <text x="500" y="708" textAnchor="middle" fontSize="10" fill="#6b6456" fontWeight="700">SOUTH DRIVE</text>
-          <text x="874" y="708" textAnchor="middle" fontSize="10" fill="#c9a227" fontWeight="700">DIVISION · VE</text>
+          <text x="180" y="22" textAnchor="middle" fontSize="8" fill="#6b6456" fontWeight="700">NORTH BLOCK</text>
+          <text x="40" y="494" textAnchor="middle" fontSize="8" fill="#6b6456">WEST</text>
+          <text x="280" y="494" textAnchor="middle" fontSize="8" fill="#6b6456">SOUTH</text>
+          <text x="556" y="494" textAnchor="middle" fontSize="8" fill="#c9a227" fontWeight="700">DIVISION · VE</text>
         </svg>
       </div>
     </section>
@@ -206,7 +206,7 @@ export function GarageMap({
       {compact ? null : (
         <section className={cn("rounded-2xl border p-4", dark ? "border-navy-2 bg-navy-2/40 text-cream" : "border-line bg-white text-navy")}>
           <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">LESSARD A-101 · SCROLL 3B THEN 2B</p>
-          <p className={cn("mt-1 text-xs", dark ? "text-cream/70" : "text-muted")}>L plate, two-way drive, west stackers, core X, east wing to the vehicle elevator. Tap a stall.</p>
+          <p className={cn("mt-1 text-xs", dark ? "text-cream/70" : "text-muted")}>Grey bands are 24' two-way drives. Hatched bays are 8.5×18. Capacity rule: 10 cars per valet per hour. Tap a live stall.</p>
           <label className="relative mt-3 block">
             <Search className={cn("pointer-events-none absolute top-3.5 left-3 size-4", dark ? "text-cream/50" : "text-muted")} />
             <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tesla, HST-4412, B-14…" autoComplete="off" className={cn("w-full rounded-xl border py-3 pr-3 pl-10 text-sm", dark ? "border-navy-2 bg-navy text-cream placeholder:text-cream/40" : "border-line bg-cream text-navy placeholder:text-muted")} />

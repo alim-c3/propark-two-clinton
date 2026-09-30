@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROPARK · Two Clinton 2B / 3B map</title>
+<style>
+:root { --navy:#0E1726; --gold:#F5B942; --gold2:#C4841E; --cream:#F6F1E6; --ink:#1a2436; --muted:#5c6270; --line:#e2dccb; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:var(--cream); color:var(--navy); }
+header { background:var(--navy); color:#fff; padding:12px 18px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+header .k { color:var(--gold); font-size:11px; letter-spacing:.12em; font-weight:700; }
+header h1 { margin:2px 0 0; font-size:18px; }
+nav { margin-left:auto; display:flex; gap:6px; }
+nav button { border:0; background:#243044; color:#efe8d6; border-radius:999px; padding:8px 14px; font-weight:700; cursor:pointer; }
+nav button.on { background:var(--gold); color:var(--navy); }
+.wrap { max-width:1280px; margin:0 auto; padding:16px; }
+.grid { display:grid; grid-template-columns:1.4fr .8fr; gap:14px; }
+@media(max-width:960px){ .grid { grid-template-columns:1fr; } }
+.card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px; }
+.k { font-size:11px; letter-spacing:.1em; color:var(--gold2); font-weight:700; }
+.muted { color:var(--muted); font-size:13px; line-height:1.4; }
+.legend span { display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; margin:0 6px 6px 0; }
+.hot { background:#F5B942; } .warm { background:#F6E2A8; } .cold { background:#C9D3E0; } .stack { background:#E8B4B8; } .ada { background:#B7D8C4; }
+svg { width:100%; height:auto; background:#f4efe4; border-radius:12px; }
+.stallbox { cursor:pointer; stroke:#0E1726; stroke-width:.6; }
+.stallbox:hover { stroke:#C4841E; stroke-width:1.4; }
+.info strong { display:block; font-size:18px; margin:4px 0; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; font-size:11px; color:var(--muted); border-bottom:1px solid var(--line); padding:6px 4px; }
+td { padding:7px 4px; border-bottom:1px solid #eee; }
+footer { padding:8px 16px 20px; color:var(--muted); font-size:12px; max-width:1280px; margin:0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="k">PROPARK · TWO CLINTON PARK</div><h1>Garage map from Lessard A-101 / A-131 / A-132</h1></div>
+  <nav>
+    <button class="on" id="b3" onclick="show('3B')">3B</button>
+    <button id="b2" onclick="show('2B')">2B</button>
+  </nav>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <div class="k" id="lvl">LEVEL 3B · YOU ARE HERE AT THE CORE</div>
+      <p class="muted" id="sub">L-plate. Two-way aisles. Vehicle elevator at the east tip. Tap a stall.</p>
+      <div class="legend">
+        <span class="hot">HOT 2–4 min</span>
+        <span class="warm">WARM 4–7 min</span>
+        <span class="cold">COLD 7–12 min</span>
+        <span class="stack">STACK 8–15 if nested</span>
+        <span class="ada">ADA hold</span>
+      </div>
+      <svg viewBox="0 0 640 420" id="plate" aria-label="Garage plate"></svg>
+    </div>
+    <div class="card">
+      <div class="k">STALL</div>
+      <div class="info" id="info"><strong>Tap a stall</strong><p class="muted">Working IDs are a zoning model from the posted sheets. Field-count against the A-101 table before you give numbers to RXR.</p></div>
+      <h3 style="margin:16px 0 8px;font-size:15px;">Zone rollup</h3>
+      <table id="roll"></table>
+    </div>
+  </div>
+</div>
+<footer>AM wave is drive-to-work / city / school / appointments — not Metro-North. 3B core = runner node. 2B east tip = vehicle elevator landing.</footer>
+<script>
+const COLORS = { HOT:"#F5B942", WARM:"#F6E2A8", COLD:"#C9D3E0", STACK:"#E8B4B8", ADA:"#B7D8C4" };
+const RET = { HOT:"2–4 min", WARM:"4–7 min", COLD:"7–12 min", STACK:"8–15 min if nested", ADA:"2–4 min hold" };
+function mkStalls(level){
+  const out=[];
+  const push=(id,zone,x,y,w,h,note)=>{ out.push({id,zone,x,y,w,h,note,level}); };
+  for(let i=0;i<8;i++) push(`${level}-S${String(i+1).padStart(2,"0")}`,"STACK",24,40+i*28,36,24,"West stacked / tandem");
+  for(let i=0;i<6;i++) push(`${level}-H${String(i+1).padStart(2,"0")}`,"HOT",80+i*28,70,24,36,"Core / runner node");
+  for(let i=0;i<6;i++) push(`${level}-H${String(i+7).padStart(2,"0")}`,"HOT",80+i*28,120,24,36, level==="3B"?"X You are here":"Near core");
+  push(`${level}-ADA1`,"ADA",80,170,40,28,"ADA / van");
+  push(`${level}-ADA2`,"ADA",124,170,40,28,"ADA");
+  for(let i=0;i<8;i++) push(`${level}-W${String(i+1).padStart(2,"0")}`,"WARM",80+i*28,250,24,36,"South mid-plate");
+  for(let i=0;i<8;i++) push(`${level}-W${String(i+9).padStart(2,"0")}`,"WARM",80+i*28,300,24,36,"South mid-plate");
+  const tipZone = level==="2B" ? "HOT" : "COLD";
+  const tipNote = level==="2B" ? "I'm-here vehicle elevator landing" : "East wing toward lift MR";
+  for(let i=0;i<10;i++) push(`${level}-C${String(i+1).padStart(2,"0")}`,"COLD",340+i*26,250,22,36,"East wing two-way aisle");
+  for(let i=0;i<10;i++) push(`${level}-C${String(i+11).padStart(2,"0")}`,"COLD",340+i*26,300,22,36,"East wing two-way aisle");
+  for(let i=0;i<4;i++) push(`${level}-T${String(i+1).padStart(2,"0")}`,tipZone,520+i*26,340,22,36,tipNote);
+  return out;
+}
+const DATA = { "3B": mkStalls("3B"), "2B": mkStalls("2B") };
+let level = "3B";
+function show(lv){
+  level=lv;
+  document.getElementById("b3").className = lv==="3B"?"on":"";
+  document.getElementById("b2").className = lv==="2B"?"on":"";
+  document.getElementById("lvl").textContent = lv==="3B" ? "LEVEL 3B · YOU ARE HERE AT THE CORE" : "LEVEL 2B · I'M HERE AT THE VEHICLE ELEVATOR";
+  document.getElementById("sub").textContent = lv==="3B" ? "Runner stages at the core. East wing is cold unless the car is about to go up the lift." : "Landing at the east tip is hot. North block is cold. Same two-way aisles as 3B.";
+  draw(); rollup();
+}
+function draw(){
+  const svg = document.getElementById("plate");
+  const stalls = DATA[level];
+  let html = `<rect x="16" y="24" width="300" height="210" fill="none" stroke="#0E1726" stroke-width="2"/><rect x="16" y="234" width="608" height="160" fill="none" stroke="#0E1726" stroke-width="2"/><rect x="200" y="90" width="70" height="70" fill="#0E1726"/><text x="235" y="130" fill="#F5B942" font-size="11" text-anchor="middle">CORE</text><rect x="560" y="330" width="56" height="50" fill="#0E1726"/><text x="588" y="358" fill="#F5B942" font-size="9" text-anchor="middle">LIFT</text><text x="24" y="18" fill="#5c6270" font-size="10">WEST STACK</text><text x="80" y="58" fill="#5c6270" font-size="10">NORTH BLOCK</text><text x="400" y="244" fill="#5c6270" font-size="10">EAST WING TO LIFT</text><path d="M70 200 L70 270 L330 270 L500 320" fill="none" stroke="#C4841E" stroke-width="2" stroke-dasharray="6 4"/>`;
+  stalls.forEach(s=>{
+    html += `<rect class="stallbox" data-id="${s.id}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" fill="${COLORS[s.zone]}" onclick="pick('${s.id}')"/>`;
+    html += `<text x="${s.x+2}" y="${s.y+12}" font-size="7" fill="#0E1726" pointer-events="none">${s.id.replace(level+"-","")}</text>`;
+  });
+  svg.innerHTML = html;
+}
+function pick(id){
+  const s = DATA[level].find(x=>x.id===id);
+  document.getElementById("info").innerHTML = `<strong>${s.id}</strong><p class="muted">${s.zone} · ${RET[s.zone]}<br>${s.note}<br>Level ${s.level} · two-way aisle · SLA is to the curb</p>`;
+}
+function rollup(){
+  const g = {};
+  DATA[level].forEach(s=>{ g[s.zone]=(g[s.zone]||0)+1; });
+  const order=["HOT","WARM","COLD","STACK","ADA"];
+  document.getElementById("roll").innerHTML = "<tr><th>Zone</th><th>Stalls on this schematic</th><th>Clock</th></tr>" +
+    order.map(z=>`<tr><td>${level}-${z}</td><td>${g[z]||0}</td><td>${RET[z]}</td></tr>`).join("");
+}
+show("3B");
+</script>
+</body>
+</html>

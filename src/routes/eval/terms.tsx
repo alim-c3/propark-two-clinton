@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { EvalShell } from "@/components/eval-shell";
 import { Button } from "@/components/ui/button";
 import { acceptEvalTerms, getEvalAgreement, getEvalStatus } from "@/lib/eval/api";
-import { EVAL_ACCEPTANCE_TEXT, EVAL_CHECKBOX_LABEL } from "@/lib/eval/config";
+import { EVAL_ACCEPTANCE_TEXT } from "@/lib/eval/config";
+import { TermsDocument } from "@/lib/eval/terms-document";
 
 type Search = { next?: string };
 
@@ -114,9 +115,9 @@ function TermsPage() {
                 Close
               </button>
             </div>
-            <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap font-sans text-sm leading-6">
-              {body || EVAL_CHECKBOX_LABEL}
-            </pre>
+            <div className="max-h-[70vh] overflow-auto pr-1">
+              {body ? <TermsDocument body={body} /> : <p>Loading…</p>}
+            </div>
           </div>
         </div>
       ) : null}

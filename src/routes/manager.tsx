@@ -29,31 +29,47 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/manager")({ component: Manager });
 
-const WEEKDAY = FORECAST;
-const SATURDAY = [
-  { hour: "2p", pulls: 4, actual: 3 },
-  { hour: "3p", pulls: 6, actual: 5 },
-  { hour: "4p", pulls: 7, actual: 6 },
-  { hour: "5p", pulls: 5, actual: 4 },
-  { hour: "6p", pulls: 4, actual: 3 },
+function nyDay(offset = 0) {
+  const d = new Date();
+  const ny = new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  ny.setDate(ny.getDate() + offset);
+  const weekday = ny.toLocaleDateString("en-US", { weekday: "short" });
+  const month = ny.toLocaleDateString("en-US", { month: "short" });
+  const date = ny.getDate();
+  return {
+    weekday,
+    pill: offset === 0 ? `Today · ${weekday} ${date}` : `Tomorrow · ${weekday} ${date}`,
+    banner: offset === 0 ? `TODAY · ${weekday.toUpperCase()} ${date} ${month.toUpperCase()}` : `TOMORROW · ${weekday.toUpperCase()} ${date} ${month.toUpperCase()}`,
+  };
+}
+
+const TODAY = FORECAST;
+const TOMORROW = [
+  { hour: "2p", pulls: 3, actual: 0 },
+  { hour: "3p", pulls: 4, actual: 0 },
+  { hour: "4p", pulls: 6, actual: 0 },
+  { hour: "5p", pulls: 8, actual: 0 },
+  { hour: "6p", pulls: 9, actual: 0 },
   { hour: "7p", pulls: 5, actual: 0 },
-  { hour: "8p", pulls: 6, actual: 0 },
-  { hour: "9p", pulls: 4, actual: 0 },
-  { hour: "6a", pulls: 1, actual: 0 },
-  { hour: "7a", pulls: 2, actual: 0 },
-  { hour: "8a", pulls: 3, actual: 0 },
+  { hour: "8p", pulls: 3, actual: 0 },
+  { hour: "9p", pulls: 2, actual: 0 },
+  { hour: "6a", pulls: 5, actual: 0 },
+  { hour: "7a", pulls: 12, actual: 0 },
+  { hour: "8a", pulls: 9, actual: 0 },
   { hour: "9a", pulls: 4, actual: 0 },
 ];
 
 function CarsPerHour() {
   const staff = useLane((s) => s.staff);
   const onFloor = Object.values(staff).filter(Boolean).length;
-  const [day, setDay] = useState<"weekday" | "saturday">("weekday");
+  const today = useMemo(() => nyDay(0), []);
+  const tomorrow = useMemo(() => nyDay(1), []);
+  const [day, setDay] = useState<"today" | "tomorrow">("today");
   const [valets, setValets] = useState(Math.max(1, onFloor || 2));
   const [picked, setPicked] = useState("7a");
 
   const rows = useMemo(() => {
-    const src = day === "weekday" ? WEEKDAY : SATURDAY;
+    const src = day === "today" ? TODAY : TOMORROW;
     const cap = valets * 4;
     return src.map((r) => ({
       ...r,
@@ -67,6 +83,7 @@ function CarsPerHour() {
   const hour = rows.find((r) => r.hour === picked) ?? rows[0];
   const tight = hour.gap > 0;
   const wait = tight ? Math.max(4, Math.round((hour.gap / Math.max(1, valets)) * 6)) : 3;
+  const stamp = day === "today" ? today : tomorrow;
 
   return (
     <section className="rounded-2xl border border-line bg-white p-4">
@@ -84,8 +101,8 @@ function CarsPerHour() {
         <div className="flex gap-2">
           {(
             [
-              ["weekday", "Weekday"],
-              ["saturday", "Saturday"],
+              ["today", today.pill],
+              ["tomorrow", tomorrow.pill],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -144,14 +161,7 @@ function CarsPerHour() {
             />
             <Bar dataKey="demand" name="demand" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
             <Bar dataKey="done" name="done" fill="var(--color-navy)" radius={[6, 6, 0, 0]} />
-            <Line
-              type="monotone"
-              dataKey="capacity"
-              name="capacity"
-              stroke="var(--color-ok, #1f6b4a)"
-              strokeWidth={2}
-              dot={false}
-            />
+            <Line type="monotone" dataKey="capacity" name="capacity" stroke="var(--color-ok, #1f6b4a)" strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -164,11 +174,7 @@ function CarsPerHour() {
             onClick={() => setPicked(r.hour)}
             className={cn(
               "rounded-full px-2.5 py-1 text-xs font-bold tabular-nums",
-              picked === r.hour
-                ? "bg-gold text-navy"
-                : r.gap
-                  ? "bg-navy/10 text-navy"
-                  : "bg-line text-muted",
+              picked === r.hour ? "bg-gold text-navy" : r.gap ? "bg-navy/10 text-navy" : "bg-line text-muted",
             )}
           >
             {r.hour}
@@ -176,14 +182,9 @@ function CarsPerHour() {
         ))}
       </div>
 
-      <div
-        className={cn(
-          "mt-4 rounded-xl p-4",
-          tight ? "bg-gold/20 text-navy" : "bg-navy text-cream",
-        )}
-      >
+      <div className={cn("mt-4 rounded-xl p-4", tight ? "bg-gold/20 text-navy" : "bg-navy text-cream")}>
         <p className="text-[10px] font-bold tracking-[0.16em]">
-          {day === "weekday" ? "WEEKDAY" : "SATURDAY"} · {hour.hour}
+          {stamp.banner} · {hour.hour}
         </p>
         <p className="mt-1 font-display text-2xl">
           {hour.demand} pulls vs {hour.capacity} capacity
@@ -206,9 +207,7 @@ function Manager() {
   const dismissRestack = useLane((s) => s.dismissRestack);
   const [more, setMore] = useState(false);
 
-  const live = tickets.filter(
-    (t) => t.status !== "cancelled" && t.status !== "released",
-  );
+  const live = tickets.filter((t) => t.status !== "cancelled" && t.status !== "released");
   const onFloor = Object.values(staff).filter(Boolean).length;
   const nested = live.filter((t) => t.blockedBy);
   const waiting = live.filter((t) => t.type === "now" && t.status === "open");
@@ -224,41 +223,21 @@ function Manager() {
         <div className="mt-4 overflow-hidden rounded-2xl bg-navy text-cream">
           <div className="grid md:grid-cols-2">
             <div className="p-6">
-              <p className="text-[10px] font-bold tracking-[0.18em] text-gold">
-                TOWER · RUNWAY
-              </p>
-              <h1 className="mt-2 font-display text-3xl">
-                Will the 7:05 get off the ground?
-              </h1>
+              <p className="text-[10px] font-bold tracking-[0.18em] text-gold">TOWER · RUNWAY</p>
+              <h1 className="mt-2 font-display text-3xl">Will the 7:05 get off the ground?</h1>
               <p className="mt-2 max-w-md text-sm text-cream/70">
-                {onFloor} valets on the floor. Coverage is {coverage}. Live
-                retrieves: {waiting.length} in line
+                {onFloor} valets on the floor. Coverage is {coverage}. Live retrieves: {waiting.length} in line
                 {nested.length ? ` · ${nested.length} nested` : ""}.
               </p>
-              <p
-                className={cn(
-                  "mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide",
-                  coverage === "tight"
-                    ? "bg-gold text-navy"
-                    : "bg-ok text-cream",
-                )}
-              >
-                {coverage === "tight"
-                  ? "Call a third valet before the wave"
-                  : "Shift is covered"}
+              <p className={cn("mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide", coverage === "tight" ? "bg-gold text-navy" : "bg-ok text-cream")}>
+                {coverage === "tight" ? "Call a third valet before the wave" : "Shift is covered"}
               </p>
             </div>
-            <img
-              src="/flow-manager.jpg"
-              alt="Ops desk overlooking Two Clinton Park"
-              className="h-48 w-full object-cover object-center md:h-full"
-            />
+            <img src="/flow-manager.jpg" alt="Ops desk overlooking Two Clinton Park" className="h-48 w-full object-cover object-center md:h-full" />
           </div>
         </div>
 
-        <div className="mt-4">
-          <BuyProof />
-        </div>
+        <div className="mt-4"><BuyProof /></div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {[
@@ -267,36 +246,19 @@ function Manager() {
             ["IN LINE", String(waiting.length), inbound.length ? `+ ${inbound.length} inbound` : "Now-requests"],
           ].map(([k, v, s]) => (
             <div key={k} className="rounded-2xl border border-line bg-white p-4">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-                {k}
-              </p>
+              <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">{k}</p>
               <p className="font-display text-3xl tabular-nums text-navy">{v}</p>
               <p className="text-xs text-muted">{s}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-4">
-          <CarsPerHour />
-        </div>
+        <div className="mt-4"><CarsPerHour /></div>
+        <div className="mt-4"><AttendantBoard /></div>
+        <div className="mt-4"><HostStand tickets={tickets} staff={staff} /></div>
+        <div className="mt-4"><GarageMap highlight={waiting[0]?.stall ?? nested[0]?.stall ?? "A-01"} /></div>
 
-        <div className="mt-4">
-          <AttendantBoard />
-        </div>
-
-        <div className="mt-4">
-          <HostStand tickets={tickets} staff={staff} />
-        </div>
-
-        <div className="mt-4">
-          <GarageMap highlight={waiting[0]?.stall ?? nested[0]?.stall ?? "A-01"} />
-        </div>
-
-        <button
-          type="button"
-          className="mt-6 text-sm font-semibold text-gold-2"
-          onClick={() => setMore((v) => !v)}
-        >
+        <button type="button" className="mt-6 text-sm font-semibold text-gold-2" onClick={() => setMore((v) => !v)}>
           {more ? "Hide the rest of the board" : "More — restack, crew, fingerprints"}
         </button>
 
@@ -304,24 +266,15 @@ function Manager() {
           <div className="mt-4 space-y-4">
             <section className="rounded-2xl border border-line bg-white p-4">
               <h2 className="font-display text-xl">Tonight’s restack</h2>
-              <p className="mt-1 text-sm text-muted">
-                Accept puts it on the valet board. Leave it stays put.
-              </p>
+              <p className="mt-1 text-sm text-muted">Accept puts it on the valet board. Leave it stays put.</p>
               <div className="mt-4 flex flex-col gap-3">
                 {RESTACK.map((r) => {
                   const st = restack[r.id];
                   return (
-                    <article
-                      key={r.id}
-                      className="flex flex-col gap-3 rounded-xl border border-line p-4 sm:flex-row sm:items-center"
-                    >
+                    <article key={r.id} className="flex flex-col gap-3 rounded-xl border border-line p-4 sm:flex-row sm:items-center">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold">
-                          {r.car} · {r.unit} · {r.plate}
-                        </p>
-                        <p className="text-sm text-muted">
-                          {r.from} → {r.to}
-                        </p>
+                        <p className="font-semibold">{r.car} · {r.unit} · {r.plate}</p>
+                        <p className="text-sm text-muted">{r.from} → {r.to}</p>
                         <p className="mt-1 text-sm text-muted">{r.why}</p>
                       </div>
                       {st === "accepted" ? (
@@ -330,35 +283,15 @@ function Manager() {
                         <p className="text-sm text-muted">Left in place</p>
                       ) : (
                         <div className="flex shrink-0 gap-2">
-                          <Button
-                            variant="navy"
-                            size="sm"
-                            onClick={() => {
-                              const res = acceptRestack(r.id);
-                              toast[res.ok ? "success" : "error"](res.message);
-                            }}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const res = dismissRestack(r.id);
-                              toast[res.ok ? "success" : "error"](res.message);
-                            }}
-                          >
-                            Leave it
-                          </Button>
+                          <Button variant="navy" size="sm" onClick={() => { const res = acceptRestack(r.id); toast[res.ok ? "success" : "error"](res.message); }}>Accept</Button>
+                          <Button variant="ghost" size="sm" onClick={() => { const res = dismissRestack(r.id); toast[res.ok ? "success" : "error"](res.message); }}>Leave it</Button>
                         </div>
                       )}
                     </article>
                   );
                 })}
               </div>
-              {!pendingMoves.length ? (
-                <p className="mt-3 text-sm text-muted">No pending moves.</p>
-              ) : null}
+              {!pendingMoves.length ? <p className="mt-3 text-sm text-muted">No pending moves.</p> : null}
             </section>
 
             <StreetCredBoard />
@@ -370,18 +303,11 @@ function Manager() {
                   <article key={r.unit} className="rounded-xl border border-line p-4">
                     <p className="font-semibold">{r.unit}</p>
                     <p className="text-sm text-muted">{r.car}</p>
-                    <p className="mt-2 text-sm">
-                      Out {r.leave} · back {r.back}
-                    </p>
+                    <p className="mt-2 text-sm">Out {r.leave} · back {r.back}</p>
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                      <div
-                        className="h-full rounded-full bg-gold"
-                        style={{ width: `${r.hit}%` }}
-                      />
+                      <div className="h-full rounded-full bg-gold" style={{ width: `${r.hit}%` }} />
                     </div>
-                    <p className="mt-1 text-xs tabular-nums text-muted">
-                      {r.hit ? `${r.hit}% hit rate` : "Charge-gated"}
-                    </p>
+                    <p className="mt-1 text-xs tabular-nums text-muted">{r.hit ? `${r.hit}% hit rate` : "Charge-gated"}</p>
                     <p className="mt-2 text-sm text-navy">{r.note}</p>
                   </article>
                 ))}

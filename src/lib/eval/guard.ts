@@ -19,19 +19,24 @@ export function isPublicEvalPath(pathname: string): boolean {
 
 export async function enforceEvalNavigation(pathname: string) {
   if (isPublicEvalPath(pathname)) return;
-  const status = await getEvalStatus();
-  if (!status.enforced) return;
-  const next = pathname || "/";
-  if (!status.authenticated || !status.emailVerified) {
-    throw redirect({ to: "/login", search: { next } });
-  }
-  if (status.accessStatus === "revoked") {
-    throw redirect({ to: "/eval/revoked" });
-  }
-  if (status.accessStatus !== "active") {
-    throw redirect({ to: "/eval/pending" });
-  }
-  if (!status.acceptedCurrentTerms) {
-    throw redirect({ to: "/eval/terms", search: { next } });
+  try {
+    const status = await getEvalStatus();
+    if (!status.enforced) return;
+    const next = pathname || "/";
+    if (!status.authenticated || !status.emailVerified) {
+      throw redirect({ to: "/login", search: { next } });
+    }
+    if (status.accessStatus === "revoked") {
+      throw redirect({ to: "/eval/revoked" });
+    }
+    if (status.accessStatus !== "active") {
+      throw redirect({ to: "/eval/pending" });
+    }
+    if (!status.acceptedCurrentTerms) {
+      throw redirect({ to: "/eval/terms", search: { next } });
+    }
+  } catch (err) {
+    if (err && typeof err === "object" && "to" in (err as object)) throw err;
+    throw redirect({ to: "/login", search: { next: pathname || "/" } });
   }
 }

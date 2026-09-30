@@ -12,6 +12,7 @@ import {
   type EvaluatorAccessStatus,
 } from "./config";
 import { newId, normalizeEmail, sha256Hex } from "./crypto";
+import { blankEvalCookie, cookieHasCurrentTerms, readEvalCookie, writeEvalCookie } from "./session-cookie.server";
 import {
   canAccessProtectedRunway,
   initialAccessStatus,
@@ -237,30 +238,7 @@ export async function createEvalSession(evaluatorId: string): Promise<string> {
 }
 
 export async function clearEvalSession(): Promise<void> {
-  const token = getCookie(EVAL_SESSION_COOKIE);
-  if (token) {
-    try {
-      const { payload } = await jwtVerify(token, sessionSecret());
-      const sid = typeof payload.sid === "string" ? payload.sid : null;
-      if (sid) {
-        const sql = await getSql();
-        await sql`
-          update eval_sessions
-          set revoked_at = now()
-          where id = ${sid} and revoked_at is null
-        `;
-      }
-    } catch {
-      /* expired or forged cookie — still clear it */
-    }
-  }
-  setCookie(EVAL_SESSION_COOKIE, "", {
-    path: "/",
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: 0,
-  });
+  blankEvalCookie();
 }
 
 export async function readSessionEvaluator(): Promise<EvaluatorRow | null> {
@@ -331,30 +309,27 @@ export async function readEvalStatus(): Promise<EvalStatus> {
     return { ...empty, canAccess: true };
   }
 
-  await ensureAgreementSeeded();
-  const evaluator = await readSessionEvaluator();
-  if (!evaluator) return empty;
-
-  const acceptance = await latestAcceptance(evaluator.email, requiredVersion);
-  const acceptedCurrentTerms = Boolean(acceptance);
+  const claims = await readEvalCookie();
+  if (!claims) return empty;
+  const acceptedCurrentTerms = cookieHasCurrentTerms(claims);
   return {
     enforced: true,
     authenticated: true,
-    emailVerified: evaluator.email_verified,
-    email: evaluator.email,
-    name: evaluator.name,
-    organization: evaluator.organization,
-    evaluatorId: evaluator.id,
-    userId: evaluator.user_id,
-    accessStatus: evaluator.access_status,
+    emailVerified: claims.verified,
+    email: claims.email,
+    name: null,
+    organization: null,
+    evaluatorId: claims.evaluatorId,
+    userId: null,
+    accessStatus: claims.accessStatus,
     acceptedCurrentTerms,
-    acceptedVersion: acceptance?.agreement_version ?? null,
-    acceptedAt: acceptance?.accepted_at ?? null,
-    isAdmin: isAdminEmail(evaluator.email, policy),
+    acceptedVersion: claims.acceptedVersion,
+    acceptedAt: null,
+    isAdmin: isAdminEmail(claims.email, policy),
     requiredVersion,
     canAccess: canAccessProtectedRunway({
-      emailVerified: evaluator.email_verified,
-      accessStatus: evaluator.access_status,
+      emailVerified: claims.verified,
+      accessStatus: claims.accessStatus,
       acceptedCurrentTerms,
     }),
   };
@@ -396,53 +371,66 @@ export async function recordAcceptance(input: {
     throw new EvalAccessError("Evaluation access is not active", 403);
   }
 
-  await ensureAgreementSeeded();
-  const agreement = currentAgreement();
-  const sql = await getSql();
-  const seeded = await sql<{ sha256: string }>`
-    select sha256 from evaluation_agreements where version = ${agreement.version} limit 1
-  `;
-  const hash = seeded[0]?.sha256 ?? agreement.sha256;
-  const meta = requestMeta();
-  const acceptedAt = new Date().toISOString();
-
-  if (input.name || input.organization) {
-    await sql`
-      update evaluators
-      set
-        name = coalesce(${input.name ?? null}, name),
-        organization = coalesce(${input.organization ?? null}, organization),
-        updated_at = now()
-      where id = ${status.evaluatorId}
-    `;
+  const claims = await readEvalCookie();
+  if (!claims || claims.email !== status.email) {
+    throw new EvalAccessError("Unauthorized", 401);
   }
+  await writeEvalCookie({
+    ...claims,
+    acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
+  });
 
-  await sql`
-    insert into legal_acceptances (
-      id, user_id, evaluator_id, email, name, organization,
-      agreement_type, agreement_version, agreement_effective_date,
-      agreement_hash, acceptance_text, accepted_at, ip_address,
-      user_agent, acceptance_method, environment, account_status
-    ) values (
-      ${newId("acc")},
-      ${status.userId},
-      ${status.evaluatorId},
-      ${status.email},
-      ${input.name ?? status.name},
-      ${input.organization ?? status.organization},
-      ${agreement.name},
-      ${agreement.version},
-      ${agreement.effectiveDate},
-      ${hash},
-      ${EVAL_ACCEPTANCE_TEXT},
-      ${acceptedAt}::timestamptz,
-      ${meta.ip},
-      ${meta.userAgent},
-      ${"clickwrap"},
-      ${currentEnvironment()},
-      ${status.accessStatus}
-    )
-  `;
+  try {
+    await ensureAgreementSeeded();
+    const agreement = currentAgreement();
+    const sql = await getSql();
+    const seeded = await sql<{ sha256: string }>`
+      select sha256 from evaluation_agreements where version = ${agreement.version} limit 1
+    `;
+    const hash = seeded[0]?.sha256 ?? agreement.sha256;
+    const meta = requestMeta();
+    const acceptedAt = new Date().toISOString();
+
+    if (input.name || input.organization) {
+      await sql`
+        update evaluators
+        set
+          name = coalesce(${input.name ?? null}, name),
+          organization = coalesce(${input.organization ?? null}, organization),
+          updated_at = now()
+        where id = ${status.evaluatorId}
+      `;
+    }
+
+    await sql`
+      insert into legal_acceptances (
+        id, user_id, evaluator_id, email, name, organization,
+        agreement_type, agreement_version, agreement_effective_date,
+        agreement_hash, acceptance_text, accepted_at, ip_address,
+        user_agent, acceptance_method, environment, account_status
+      ) values (
+        ${newId("acc")},
+        ${status.userId},
+        ${status.evaluatorId},
+        ${status.email},
+        ${input.name ?? status.name},
+        ${input.organization ?? status.organization},
+        ${agreement.name},
+        ${agreement.version},
+        ${agreement.effectiveDate},
+        ${hash},
+        ${EVAL_ACCEPTANCE_TEXT},
+        ${acceptedAt}::timestamptz,
+        ${meta.ip},
+        ${meta.userAgent},
+        ${"clickwrap"},
+        ${currentEnvironment()},
+        ${status.accessStatus}
+      )
+    `;
+  } catch (err) {
+    console.error("[eval] could not persist acceptance row", err);
+  }
   return readEvalStatus();
 }
 

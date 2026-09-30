@@ -78,8 +78,12 @@ export const signOutEval = createServerFn({ method: "POST" }).handler(async () =
 
 export const getEvalAgreement = createServerFn({ method: "POST" }).handler(async () => {
   const { currentAgreement } = await import("./agreement");
-  const { ensureAgreementSeeded } = await import("./access.server");
-  await ensureAgreementSeeded();
+  try {
+    const { ensureAgreementSeeded } = await import("./access.server");
+    await ensureAgreementSeeded();
+  } catch (err) {
+    console.error("[eval] agreement seed skipped", err);
+  }
   return currentAgreement();
 });
 

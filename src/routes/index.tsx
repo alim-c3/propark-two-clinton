@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { PitchNav } from "@/components/pitch-nav";
 import { Button } from "@/components/ui/button";
+import { startEvalSignIn } from "@/lib/eval/api";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -93,14 +95,7 @@ function Home() {
             stall, and the lift. Managers see coverage before the rush. Keys
             come down by text — nobody walks upstairs.
           </p>
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <Button asChild variant="gold">
-              <Link to="/resident">Open resident app</Link>
-            </Button>
-            <Button asChild variant="ghostDark">
-              <Link to="/features">Feature list</Link>
-            </Button>
-          </div>
+          <HomeAccessForm />
         </div>
       </div>
 
@@ -201,5 +196,64 @@ function Home() {
         </div>
       </section>
     </main>
+  );
+}
+
+function HomeAccessForm() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await startEvalSignIn({ data: { email } });
+      if (result.accessStatus === "revoked") {
+        await navigate({ to: "/eval/revoked" });
+        return;
+      }
+      if (result.accessStatus !== "active") {
+        await navigate({ to: "/eval/pending" });
+        return;
+      }
+      if (!result.acceptedCurrentTerms) {
+        await navigate({ to: "/eval/terms", search: { next: "/resident" } });
+        return;
+      }
+      await navigate({ to: "/resident" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not continue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="mt-5 max-w-md" onSubmit={(event) => void submit(event)}>
+      <label className="block text-xs font-semibold tracking-wide text-cream/80">
+        Enter your email for access
+        <input
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@company.com"
+          className="mt-2 w-full rounded-xl border border-cream/20 bg-navy/70 px-3 py-3 text-sm text-cream outline-none focus:border-gold"
+        />
+      </label>
+      {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <Button type="submit" variant="gold" disabled={busy}>
+          {busy ? "Checking…" : "Continue"}
+        </Button>
+        <Button asChild variant="ghostDark">
+          <Link to="/features">Feature list</Link>
+        </Button>
+      </div>
+    </form>
   );
 }

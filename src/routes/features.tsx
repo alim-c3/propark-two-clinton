@@ -3,7 +3,12 @@ import { Check } from "lucide-react";
 import { PitchNav } from "@/components/pitch-nav";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/features")({ component: Features });
+import { enforceEvalNavigation } from "@/lib/eval/guard";
+
+export const Route = createFileRoute("/features")({
+  beforeLoad: () => enforceEvalNavigation("/features"),
+  component: Features,
+});
 
 const SEATS = [
   {

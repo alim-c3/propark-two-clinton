@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { enforceEvalNavigation } from "@/lib/eval/guard";
 import { toast } from "sonner";
 import { YourShift } from "@/components/attendant-board";
 import { Chrome } from "@/components/chrome";
@@ -19,7 +20,12 @@ import { useLane } from "@/lib/store";
 import type { Ticket } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/valet")({ component: Valet });
+import { enforceEvalNavigation } from "@/lib/eval/guard";
+
+export const Route = createFileRoute("/valet")({
+  beforeLoad: () => enforceEvalNavigation("/valet"),
+  component: Valet,
+});
 
 function jobAction(
   t: Ticket,

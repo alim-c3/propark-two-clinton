@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { enforceEvalNavigation } from "@/lib/eval/guard";
 import { Mail, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +17,12 @@ import { placeLine, placeOf } from "@/lib/queue";
 import type { Ticket, TicketType } from "@/lib/types";
 import { localInputValue, cn, useNow } from "@/lib/utils";
 
-export const Route = createFileRoute("/resident")({ component: Resident });
+import { enforceEvalNavigation } from "@/lib/eval/guard";
+
+export const Route = createFileRoute("/resident")({
+  beforeLoad: () => enforceEvalNavigation("/resident"),
+  component: Resident,
+});
 
 function isLive(t: Ticket) {
   return t.status === "open" || t.status === "claimed" || t.status === "staged";

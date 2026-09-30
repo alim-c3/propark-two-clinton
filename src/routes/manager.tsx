@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { enforceEvalNavigation } from "@/lib/eval/guard";
 import {
   Bar,
   CartesianGrid,
@@ -27,7 +28,12 @@ import { FINGERPRINTS, FORECAST, RESTACK } from "@/lib/seed";
 import { useLane } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/manager")({ component: Manager });
+import { enforceEvalNavigation } from "@/lib/eval/guard";
+
+export const Route = createFileRoute("/manager")({
+  beforeLoad: () => enforceEvalNavigation("/manager"),
+  component: Manager,
+});
 
 const CARS_PER_VALET_HR = 10;
 

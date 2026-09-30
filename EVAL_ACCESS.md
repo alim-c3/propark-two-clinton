@@ -1,0 +1,39 @@
+# Runway evaluation access
+
+Flow: Demo URL → email → one-time code → Runway Evaluation Terms → Runway.
+
+## Environment
+
+| Variable | Purpose |
+|---|---|
+| `RESEND_API_KEY` | Send sign-in and invite email |
+| `RUNWAY_EVAL_FROM_EMAIL` | From address (`Runway <noreply@domain>`) |
+| `RUNWAY_EVAL_SESSION_SECRET` | Signs evaluation session cookies (falls back to `BETTER_AUTH_SECRET`) |
+| `RUNWAY_EVAL_ENFORCE` | `true`/`false`. Default follows `VITE_AUTH_ENABLED !== "false"` |
+| `RUNWAY_EVAL_ALLOWED_EMAILS` | Optional comma-separated allowlist |
+| `RUNWAY_EVAL_ALLOWED_DOMAINS` | Optional domain allowlist |
+| `RUNWAY_EVAL_ADMIN_EMAILS` | Admin directory at `/admin/evaluators` |
+| `RUNWAY_EVAL_OPEN_REGISTRATION` | `true` forces open verified-email access even if an allowlist exists |
+| `RUNWAY_EVAL_DEV_ECHO` | `true` returns the OTP in the API response when email is only logged |
+| `VITE_AUTH_ENABLED` | Existing Grok/Better Auth flag. `"false"` also turns eval enforcement off |
+| `DATABASE_URL` | Neon/Postgres in production. PGLite is used when unset |
+| `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Existing Better Auth deploy secrets |
+
+## Publish v2 of the terms
+
+1. Copy the new agreement to `legal/versions/YYYY-MM-DD-v2.md`.
+2. Do not edit `legal/versions/2026-09-30-v1.md`.
+3. Replace `legal/RUNWAY_EVALUATION_TERMS.md` with the v2 text.
+4. Change only `RUNWAY_EVALUATION_TERMS_VERSION` and `RUNWAY_EVALUATION_TERMS_EFFECTIVE_DATE` in `src/lib/eval/config.ts`.
+5. Deploy. Prior `legal_acceptances` rows stay. Anyone with only v1 is shown the terms screen again.
+
+## Invite / revoke
+
+- Invite: `/admin/evaluators` or insert into `eval_invites` and set `evaluators.access_status = 'active'`.
+- Revoke: `/admin/evaluators` or `update evaluators set access_status = 'revoked'`. Sessions are invalidated. Acceptance rows are not deleted.
+
+## Review acceptances
+
+`select * from legal_acceptances order by accepted_at desc;`
+
+Also listed on `/admin/evaluators`.

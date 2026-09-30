@@ -2,8 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { PitchNav } from "@/components/pitch-nav";
 import { Button } from "@/components/ui/button";
+import { enforceEvalNavigation } from "@/lib/eval/guard";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  beforeLoad: () => enforceEvalNavigation("/"),
+  component: Home,
+});
 
 const VALUE = [
   {

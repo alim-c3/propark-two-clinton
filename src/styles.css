@@ -47,26 +47,26 @@
 
 @keyframes live-pulse {
   0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
+  100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .live-dot {
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 
+@keyframes dest-blink {
+  0%, 100% { fill: #16a34a; opacity: 1; }
+  50% { fill: #86efac; opacity: 0.55; }
+}
+
+.dest-stall {
+  animation: dest-blink 1s ease-in-out infinite;
+}
+
 @keyframes stall-hit {
-  0%,
-  100% {
-    box-shadow: 0 0 0 2px var(--color-gold);
-  }
-  50% {
-    box-shadow: 0 0 0 4px var(--color-gold);
-  }
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-gold); }
+  50% { box-shadow: 0 0 0 4px var(--color-gold); }
 }
 
 .stall-hit {

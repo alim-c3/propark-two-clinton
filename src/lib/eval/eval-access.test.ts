@@ -21,10 +21,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 test("canonical agreement files are identical and hash-stable", () => {
   const live = readFileSync(join(root, "legal/RUNWAY_EVALUATION_TERMS.md"), "utf8");
-  const frozen = readFileSync(join(root, "legal/versions/2026-09-30-v1.md"), "utf8");
+  const frozen = readFileSync(join(root, "legal/versions/1.0.md"), "utf8");
   assert.equal(live, frozen);
   assert.match(live, /RUNWAY EVALUATION TERMS/);
-  assert.match(live, /\*\*Version:\*\* 2026-09-30-v1/);
+  assert.match(live, /\*\*Version 1\.0\*\*/);
   assert.match(live, /## 28\. Electronic Acceptance/);
   assert.equal(sha256Hex(live), createHash("sha256").update(live, "utf8").digest("hex"));
 });
@@ -76,14 +76,14 @@ test("returning evaluator with current acceptance can access", () => {
 test("new required version invalidates prior acceptance only for access", () => {
   assert.equal(
     hasCurrentAcceptance({
-      acceptedVersion: "2026-09-30-v1",
-      requiredVersion: "2026-09-30-v1",
+      acceptedVersion: "1.0",
+      requiredVersion: "1.0",
     }),
     true,
   );
   assert.equal(
     hasCurrentAcceptance({
-      acceptedVersion: "2026-09-30-v1",
+      acceptedVersion: "1.0",
       requiredVersion: "2026-11-01-v2",
     }),
     false,

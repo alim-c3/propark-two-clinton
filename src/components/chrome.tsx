@@ -35,11 +35,8 @@ export function Chrome({
           : "border-line bg-cream text-navy",
       )}
     >
-      <Link to="/" className="shrink-0 leading-tight">
-        <span className="block text-[10px] font-bold tracking-[0.18em] text-gold-2">
-          RUNWAY
-        </span>
-        <span className="block font-display text-lg leading-none">Runway</span>
+      <Link to="/" className="shrink-0 font-display text-xl leading-none">
+        Runway
       </Link>
       <p className="hidden min-w-0 flex-1 text-xs text-muted sm:block">
         Two Clinton Park · 50 Clinton Place

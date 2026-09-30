@@ -24,7 +24,9 @@ Protected: `/features`, `/resident`, `/valet`, `/manager`, and evaluation APIs.
 | `DATABASE_URL` | Neon/Postgres in production. PGLite is used when unset |
 | `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Existing Better Auth deploy secrets |
 
-SHA-256 of `2026-09-30-v1`: `da5e5941ef2e2d5304941a5f2486407707d5f2e79841142e1ef31ecaf6bec81f`
+SHA-256 of `1.0`: `f2ade24dc5034fb57c388082843c3cc30937bcf9b54f82ba266a5e58c1d4c8a2`
+
+Prior snapshot `legal/versions/2026-09-30-v1.md` is frozen and no longer required.
 
 ## Publish v2 of the terms
 

@@ -23,11 +23,8 @@ export function PitchNav() {
   return (
     <header className="sticky top-0 z-20 border-b border-navy-2 bg-navy text-cream">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link to="/" className="shrink-0 leading-tight">
-          <span className="block text-[10px] font-bold tracking-[0.18em] text-gold">
-            RUNWAY
-          </span>
-          <span className="block font-display text-lg leading-none">Runway</span>
+        <Link to="/" className="shrink-0 font-display text-xl leading-none">
+          Runway
         </Link>
         <p className="hidden min-w-0 flex-1 text-xs text-cream/55 sm:block">
           For condo and apartment towers

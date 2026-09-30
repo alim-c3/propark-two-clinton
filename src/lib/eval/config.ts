@@ -4,7 +4,7 @@
  * legal/versions/ and then change ONLY the constants in this module.
  */
 export const RUNWAY_EVALUATION_TERMS_NAME = "Runway Evaluation Terms";
-export const RUNWAY_EVALUATION_TERMS_VERSION = "2026-09-30-v1";
+export const RUNWAY_EVALUATION_TERMS_VERSION = "1.0";
 export const RUNWAY_EVALUATION_TERMS_EFFECTIVE_DATE = "September 30, 2026";
 
 export const EVAL_ACCEPTANCE_TEXT =

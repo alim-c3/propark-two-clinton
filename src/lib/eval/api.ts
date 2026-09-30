@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { isValidEmail, normalizeEmail } from "./crypto";
 
 export type EvalStatusDto = {
@@ -19,7 +18,8 @@ export type EvalStatusDto = {
   canAccess: boolean;
 };
 
-function requestOrigin(): string {
+async function requestOrigin(): Promise<string> {
+  const { getRequest } = await import("@tanstack/react-start/server");
   const request = getRequest();
   if (!request) return "http://localhost:8080";
   const host =
@@ -41,7 +41,7 @@ export const startEvalSignIn = createServerFn({ method: "POST" })
     const email = normalizeEmail(data.email ?? "");
     if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
     const { beginSignIn } = await import("./otp.server");
-    return beginSignIn(email, requestOrigin());
+    return beginSignIn(email, await requestOrigin());
   });
 
 export const requestEvalCode = createServerFn({ method: "POST" })
@@ -50,7 +50,7 @@ export const requestEvalCode = createServerFn({ method: "POST" })
     const email = normalizeEmail(data.email ?? "");
     if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
     const { requestOtp } = await import("./otp.server");
-    return requestOtp(email, requestOrigin());
+    return requestOtp(email, await requestOrigin());
   });
 
 export const verifyEvalCode = createServerFn({ method: "POST" })
@@ -107,7 +107,7 @@ export const inviteEvalUser = createServerFn({ method: "POST" })
     await sendEvalEmail({
       to: email,
       subject: "You are invited to evaluate Runway",
-      text: `You have been invited to evaluate Runway.\n\nOpen ${requestOrigin()}/login and verify this email address to continue.`,
+      text: `You have been invited to evaluate Runway.\n\nOpen ${await requestOrigin()}/login and verify this email address to continue.`,
     });
     return { ok: true };
   });

@@ -20,8 +20,6 @@ import { useLane } from "@/lib/store";
 import type { Ticket } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-import { enforceEvalNavigation } from "@/lib/eval/guard";
-
 export const Route = createFileRoute("/valet")({
   beforeLoad: () => enforceEvalNavigation("/valet"),
   component: Valet,

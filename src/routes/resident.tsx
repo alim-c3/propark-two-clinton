@@ -17,8 +17,6 @@ import { placeLine, placeOf } from "@/lib/queue";
 import type { Ticket, TicketType } from "@/lib/types";
 import { localInputValue, cn, useNow } from "@/lib/utils";
 
-import { enforceEvalNavigation } from "@/lib/eval/guard";
-
 export const Route = createFileRoute("/resident")({
   beforeLoad: () => enforceEvalNavigation("/resident"),
   component: Resident,

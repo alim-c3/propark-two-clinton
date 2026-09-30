@@ -94,8 +94,7 @@ function LoginPage() {
     <EvalShell>
       <h1 className="mt-3 font-display text-3xl">Welcome to Runway</h1>
       <p className="mt-2 text-sm text-cream/70">
-        Enter your work email to continue. New evaluators receive a one-time code.
-        Returning evaluators continue with email only.
+        Enter your approved work email to continue.
       </p>
       <form className="mt-6 space-y-3" onSubmit={sent ? verify : continueWithEmail}>
         <label className="block text-xs font-semibold tracking-wide text-cream/70">

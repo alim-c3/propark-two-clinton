@@ -2,7 +2,7 @@
 
 Flow: Public marketing home → protected seat → email → one-time code (first visit only) → Runway Evaluation Terms → Runway.
 
-Returning verified evaluators enter the same email and continue without a new code. If the required terms version has changed, they accept again.
+Approved evaluators are listed in `src/lib/eval/config.ts` (`DEFAULT_ALLOWED_EMAILS`). Add more there or with `RUNWAY_EVAL_ALLOWED_EMAILS`. Unknown emails are rejected.
 
 Public: `/` only (plus `/login` and the terms screens).
 Protected: `/features`, `/resident`, `/valet`, `/manager`, and evaluation APIs.

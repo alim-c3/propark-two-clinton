@@ -1,5 +1,9 @@
 import { emailDomain, normalizeEmail, parseCsvList } from "./crypto";
-import type { EvaluatorAccessStatus } from "./config";
+import {
+  DEFAULT_ADMIN_EMAILS,
+  DEFAULT_ALLOWED_EMAILS,
+  type EvaluatorAccessStatus,
+} from "./config";
 
 export type EvalPolicy = {
   enforce: boolean;
@@ -20,19 +24,26 @@ export function evalEnforcedFromEnv(
 export function readEvalPolicy(
   env: Record<string, string | undefined> = process.env,
 ): EvalPolicy {
-  const allowedEmails = parseCsvList(env.RUNWAY_EVAL_ALLOWED_EMAILS);
+  const allowedEmails = unique([
+    ...DEFAULT_ALLOWED_EMAILS,
+    ...parseCsvList(env.RUNWAY_EVAL_ALLOWED_EMAILS),
+  ]);
   const allowedDomains = parseCsvList(env.RUNWAY_EVAL_ALLOWED_DOMAINS);
-  const adminEmails = parseCsvList(env.RUNWAY_EVAL_ADMIN_EMAILS);
-  const allowlistConfigured = allowedEmails.length > 0 || allowedDomains.length > 0;
-  const openRegistration =
-    env.RUNWAY_EVAL_OPEN_REGISTRATION === "true" || !allowlistConfigured;
+  const adminEmails = unique([
+    ...DEFAULT_ADMIN_EMAILS,
+    ...parseCsvList(env.RUNWAY_EVAL_ADMIN_EMAILS),
+  ]);
   return {
     enforce: evalEnforcedFromEnv(env),
     allowedEmails,
     allowedDomains,
     adminEmails,
-    openRegistration,
+    openRegistration: env.RUNWAY_EVAL_OPEN_REGISTRATION === "true",
   };
+}
+
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values.map((value) => value.toLowerCase()))];
 }
 
 export function emailOnAllowlist(email: string, policy: EvalPolicy): boolean {

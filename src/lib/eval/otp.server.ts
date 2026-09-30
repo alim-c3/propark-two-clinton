@@ -9,7 +9,7 @@ import {
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
 import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, evaluatorHasCurrentTerms } from "./access.server";
-import { canSkipOtp } from "./policy";
+import { canSkipOtp, emailOnAllowlist, readEvalPolicy } from "./policy";
 
 export class EvalOtpError extends Error {
   readonly status: number;
@@ -30,7 +30,16 @@ function hashOtp(email: string, code: string): string {
 
 export async function beginSignIn(emailRaw: string, origin: string) {
   const email = normalizeEmail(emailRaw);
+  const policy = readEvalPolicy();
+  if (!policy.openRegistration && !emailOnAllowlist(email, policy)) {
+    throw new EvalOtpError("This email is not on the evaluator list.", 403);
+  }
+
   const existing = await findEvaluatorByEmail(email);
+  if (existing?.access_status === "revoked") {
+    throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
+  }
+
   if (
     existing &&
     canSkipOtp({
@@ -39,26 +48,30 @@ export async function beginSignIn(emailRaw: string, origin: string) {
     })
   ) {
     await createEvalSession(existing.id);
-    const acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
     return {
       ok: true as const,
       method: "email" as const,
       email,
       accessStatus: existing.access_status,
-      acceptedCurrentTerms,
+      acceptedCurrentTerms: await evaluatorHasCurrentTerms(email),
     };
   }
-  const otp = await requestOtp(email, origin);
+
+  const evaluator = await upsertEvaluator({
+    email,
+    invited: true,
+    markVerified: true,
+  });
+  if (evaluator.access_status === "revoked") {
+    throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
+  }
+  await createEvalSession(evaluator.id);
   return {
     ok: true as const,
-    method: "otp" as const,
+    method: "email" as const,
     email,
-    accessStatus: existing?.access_status ?? "pending",
-    acceptedCurrentTerms: false,
-    delivered: otp.delivered,
-    provider: otp.provider,
-    expiresInSeconds: otp.expiresInSeconds,
-    devCode: otp.devCode,
+    accessStatus: evaluator.access_status,
+    acceptedCurrentTerms: await evaluatorHasCurrentTerms(email),
   };
 }
 

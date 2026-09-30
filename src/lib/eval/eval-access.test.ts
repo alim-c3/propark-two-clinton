@@ -110,20 +110,23 @@ test("admin emails are not hard-coded to one company", () => {
 });
 
 test("open registration vs allowlist", () => {
-  const open = readEvalPolicy({});
-  assert.equal(open.openRegistration, true);
+  const closed = readEvalPolicy({});
+  assert.equal(closed.openRegistration, false);
   assert.equal(
-    initialAccessStatus({ email: "a@b.co", invited: false, policy: open }),
+    initialAccessStatus({ email: "alim@c3inspire.com", invited: false, policy: closed }),
     "active",
   );
-  const closed = readEvalPolicy({
-    RUNWAY_EVAL_ALLOWED_EMAILS: "in@x.com",
-    RUNWAY_EVAL_OPEN_REGISTRATION: "false",
-  });
   assert.equal(
-    initialAccessStatus({ email: "out@x.com", invited: false, policy: closed }),
+    initialAccessStatus({ email: "stranger@x.com", invited: false, policy: closed }),
     "pending",
   );
+  assert.equal(emailOnAllowlist("gabriel.rojas@propark.com", closed), true);
+  assert.equal(emailOnAllowlist("joseph.mattesi@propark.com", closed), true);
+  assert.equal(emailOnAllowlist("test@test.com", closed), true);
+  const forcedOpen = readEvalPolicy({
+    RUNWAY_EVAL_OPEN_REGISTRATION: "true",
+  });
+  assert.equal(forcedOpen.openRegistration, true);
   assert.equal(
     initialAccessStatus({ email: "out@x.com", invited: true, policy: closed }),
     "active",

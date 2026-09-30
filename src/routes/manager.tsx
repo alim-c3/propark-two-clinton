@@ -28,8 +28,6 @@ import { FINGERPRINTS, FORECAST, RESTACK } from "@/lib/seed";
 import { useLane } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-import { enforceEvalNavigation } from "@/lib/eval/guard";
-
 export const Route = createFileRoute("/manager")({
   beforeLoad: () => enforceEvalNavigation("/manager"),
   component: Manager,

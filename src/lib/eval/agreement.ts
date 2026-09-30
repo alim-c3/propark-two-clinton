@@ -1,6 +1,4 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import liveTerms from "../../../legal/RUNWAY_EVALUATION_TERMS.md?raw";
 import {
   RUNWAY_EVALUATION_TERMS_EFFECTIVE_DATE,
   RUNWAY_EVALUATION_TERMS_NAME,
@@ -16,17 +14,8 @@ export type AgreementSnapshot = {
   sha256: string;
 };
 
-function legalRoot(): string {
-  return join(dirname(fileURLToPath(import.meta.url)), "../../../legal");
-}
-
-export function loadAgreementFile(version = RUNWAY_EVALUATION_TERMS_VERSION): string {
-  const immutable = join(legalRoot(), "versions", `${version}.md`);
-  try {
-    return readFileSync(immutable, "utf8");
-  } catch {
-    return readFileSync(join(legalRoot(), "RUNWAY_EVALUATION_TERMS.md"), "utf8");
-  }
+export function loadAgreementFile(_version = RUNWAY_EVALUATION_TERMS_VERSION): string {
+  return liveTerms;
 }
 
 export function currentAgreement(): AgreementSnapshot {

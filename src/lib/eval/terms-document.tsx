@@ -45,6 +45,13 @@ export function TermsDocument({ body }: { body: string }) {
     }
     flushList();
     if (!line.trim()) continue;
+    if (/^\*\*Version 1\.0\*\*/i.test(line.trim())) continue;
+    if (/^\*\*Effective Date:/i.test(line.trim())) continue;
+    if (/^\*\*Effective September/i.test(line.trim())) continue;
+    if (/^Effective Date:/i.test(line.trim())) continue;
+    if (/^Effective September/i.test(line.trim())) continue;
+    if (/^Version 1\.0$/i.test(line.trim())) continue;
+    if (/^Effective Date:/i.test(line.trim())) continue;
     if (line.trim() === "---") {
       blocks.push(<hr key={`hr-${blocks.length}`} className="my-6 border-navy/15" />);
       continue;

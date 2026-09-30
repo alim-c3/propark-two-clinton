@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/manager")({ component: Manager });
 
+const CARS_PER_VALET_HR = 10;
+
 function nyDay(offset = 0) {
   const d = new Date();
   const ny = new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
@@ -70,7 +72,7 @@ function CarsPerHour() {
 
   const rows = useMemo(() => {
     const src = day === "today" ? TODAY : TOMORROW;
-    const cap = valets * 4;
+    const cap = valets * CARS_PER_VALET_HR;
     return src.map((r) => ({
       ...r,
       demand: r.pulls,
@@ -95,7 +97,7 @@ function CarsPerHour() {
           <h2 className="font-display text-xl">Demand vs crew capacity</h2>
           <p className="mt-1 text-sm text-muted">
             Gold is forecast pulls. Navy ticks are already staged. Line is what
-            {` ${valets} valet${valets === 1 ? "" : "s"} can clear (~4 cars/hr each).`}
+            {` ${valets} valet${valets === 1 ? "" : "s"} can clear (10 cars/hr each).`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -134,7 +136,7 @@ function CarsPerHour() {
           className="w-40 accent-[var(--color-gold)]"
         />
         <span className="font-display text-2xl tabular-nums text-navy">{valets}</span>
-        <span className="text-sm text-muted">{valets * 4} cars/hr capacity</span>
+        <span className="text-sm text-muted">{valets * CARS_PER_VALET_HR} cars/hr capacity</span>
       </div>
 
       <div className="mt-4 h-64">
@@ -227,7 +229,7 @@ function Manager() {
               <h1 className="mt-2 font-display text-3xl">Will the 7:05 get off the ground?</h1>
               <p className="mt-2 max-w-md text-sm text-cream/70">
                 {onFloor} valets on the floor. Coverage is {coverage}. Live retrieves: {waiting.length} in line
-                {nested.length ? ` · ${nested.length} nested` : ""}.
+                {nested.length ? ` · ${nested.length} nested` : ""}. Capacity is 10 cars per valet per hour.
               </p>
               <p className={cn("mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide", coverage === "tight" ? "bg-gold text-navy" : "bg-ok text-cream")}>
                 {coverage === "tight" ? "Call a third valet before the wave" : "Shift is covered"}

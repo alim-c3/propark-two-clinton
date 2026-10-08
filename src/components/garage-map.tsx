@@ -349,11 +349,11 @@ export function GarageMap({
           ) : null}
         </section>
       ) : (
-        <section className={cn("rounded-2xl border p-4", dark ? "border-navy-2 bg-navy-2/40 text-cream" : "border-line bg-white text-navy")}>
+        <section className="rounded-2xl border border-gold/40 bg-cream p-4 text-navy">
           <p className="font-display text-2xl">Car search</p>
           <label className="relative mt-3 block">
-            <Search className={cn("pointer-events-none absolute top-3.5 left-3 size-4", dark ? "text-cream/50" : "text-muted")} />
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tesla, HST-4412, B-14…" autoComplete="off" className={cn("w-full rounded-xl border py-3 pr-3 pl-10 text-sm", dark ? "border-navy-2 bg-navy text-cream placeholder:text-cream/40" : "border-line bg-cream text-navy placeholder:text-muted")} />
+            <Search className="pointer-events-none absolute top-3.5 left-3 size-4 text-muted" />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tesla, HST-4412, B-14…" autoComplete="off" className="w-full rounded-xl border border-line bg-white py-3 pr-3 pl-10 text-sm text-navy placeholder:text-muted" />
           </label>
           {fold(q).length >= 2 ? (
             <ul className="mt-2 flex max-h-32 flex-col gap-1 overflow-y-auto">

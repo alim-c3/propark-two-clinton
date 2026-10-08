@@ -48,8 +48,8 @@ function Valet() {
   const tickets = useLane((s) => s.tickets);
   const staff = useLane((s) => s.staff);
   const clock = useLane((s) => s.clock);
-  const setBreak = useLane((s) => s.setBreak);
-  const onBreak = useLane((s) => s.onBreak);
+  const duty = useLane((s) => s.duty);
+  const setDuty = useLane((s) => s.setDuty);
   const advance = useLane((s) => s.advance);
   const unnest = useLane((s) => s.unnest);
   const liftCar = useLane((s) => s.lift);
@@ -152,17 +152,39 @@ function Valet() {
             <img src="/flow-valet.jpg" alt="" className="h-48 w-full object-cover object-center" />
             <div className="p-4">
               <p className="font-display text-2xl">I’m on the runway</p>
-              <Button className="mt-4" variant="gold" size="block" onClick={() => { const r = clock(true); toast[r.ok ? "success" : "error"](r.message); }}>I’m on the runway</Button>
+              <Button className="mt-4" variant="gold" size="block" onClick={() => { const r = clock(true); toast[r.ok ? "success" : "error"](r.message); window.scrollTo({ top: 0, left: 0, behavior: "auto" }); }}>I’m on the runway</Button>
             </div>
           </section>
         ) : (
           <>
             <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-navy-2 bg-navy-2 px-4 py-3">
-              <p className="text-sm text-cream/70">{onBreak ? "On break" : "On duty · You"}</p>
-              <div className="flex gap-2">
-                <Button variant="ghostDark" size="sm" onClick={() => { const r = setBreak(!onBreak); toast[r.ok ? "success" : "error"](r.message); }}>{onBreak ? "I’m back" : "Break"}</Button>
-                <Button variant="ghostDark" size="sm" onClick={() => { const r = clock(false); toast[r.ok ? "success" : "error"](r.message); }}>Heading out</Button>
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.16em] text-gold">ON THE RUNWAY</p>
+                <p className="text-sm text-cream/70">{duty === "break" ? "On break" : duty === "food" ? "At food" : "On duty · You"}</p>
               </div>
+              <label className="text-xs font-semibold text-cream/70">
+                Status
+                <select
+                  className="mt-1 block rounded-full border border-navy bg-navy px-3 py-2 text-sm text-cream"
+                  value={duty}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "out") {
+                      const r = clock(false);
+                      toast[r.ok ? "success" : "error"](r.message);
+                      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+                      return;
+                    }
+                    const r = setDuty(value as "floor" | "break" | "food");
+                    toast[r.ok ? "success" : "error"](r.message);
+                  }}
+                >
+                  <option value="floor">On the runway</option>
+                  <option value="break">Break</option>
+                  <option value="food">Food</option>
+                  <option value="out">End shift</option>
+                </select>
+              </label>
             </div>
 
             {parking && next ? (
@@ -192,7 +214,6 @@ function Valet() {
                   {action ? <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>{action.label}</Button> : null}
                   {keysOpen(next) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(next.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
                   {curbPing(next)}
-                  {locked && next.status === "claimed" && plan?.dir === "out" ? <Flip to="/resident" label="Resident was pinged" why="They see we’re bringing the car up." tone="dark" /> : null}
                   {next.status === "staged" && plan?.dir === "out" ? <Flip to="/resident" label="Open resident — car is ready" why="Timer is running on their phone." tone="dark" /> : null}
                 </div>
               </section>
@@ -236,9 +257,18 @@ function Valet() {
                       const mineJob = t.status === "open" || t.valet === "You";
                       return (
                         <div key={t.id}>
-                          <TicketCard ticket={t} tone="dark" action={!locked && mineJob ? a?.label : undefined} onAction={!locked && mineJob && a ? () => run(t) : undefined} />
-                          {keysOpen(t) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(t.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
-                          {curbPing(t)}
+                          <TicketCard
+                            ticket={t}
+                            tone="dark"
+                            action={!locked && mineJob ? a?.label : undefined}
+                            onAction={!locked && mineJob && a ? () => run(t) : undefined}
+                            extra={
+                              <>
+                                {keysOpen(t) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(t.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
+                                {curbPing(t)}
+                              </>
+                            }
+                          />
                         </div>
                       );
                     })}

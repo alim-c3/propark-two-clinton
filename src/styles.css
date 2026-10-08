@@ -79,7 +79,7 @@
 }
 
 .valet-other {
-  animation: valet-other 1s ease-in-out infinite;
+  fill: #1d4e89;
 }
 
 @keyframes stall-hit {

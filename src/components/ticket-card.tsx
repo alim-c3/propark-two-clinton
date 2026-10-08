@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { stallDeck } from "@/lib/seed";
 import type { Ticket } from "@/lib/types";
@@ -34,6 +35,7 @@ export function TicketCard({
   onAction,
   onCancel,
   audience = "valet",
+  extra,
 }: {
   ticket: Ticket;
   tone?: "light" | "dark";
@@ -41,6 +43,7 @@ export function TicketCard({
   onAction?: () => void;
   onCancel?: () => void;
   audience?: "resident" | "valet";
+  extra?: ReactNode;
 }) {
   const dark = tone === "dark";
   const resident = audience === "resident";
@@ -101,6 +104,7 @@ export function TicketCard({
           </Button>
         ) : null}
       </div>
+      {extra}
     </article>
   );
 }

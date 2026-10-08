@@ -28,6 +28,7 @@ type LaneState = {
   punches: Punch[];
   pulls: ShiftPull[];
   onBreak: boolean;
+  duty: "floor" | "break" | "food";
   cred: CredEvent[];
   activeUnit: string;
   setActiveUnit: (unit: string) => void;
@@ -38,6 +39,7 @@ type LaneState = {
   expectBack: (label: string) => Result;
   clock: (on: boolean) => Result;
   setBreak: (on: boolean) => Result;
+  setDuty: (duty: "floor" | "break" | "food") => Result;
   unnest: (id: number) => Result;
   lift: (id: number) => Result;
   advance: (id: number) => Result;
@@ -133,6 +135,7 @@ function fresh(): Pick<
   | "punches"
   | "pulls"
   | "onBreak"
+  | "duty"
   | "cred"
 > {
   return {
@@ -154,6 +157,7 @@ function fresh(): Pick<
     punches: INITIAL_PUNCHES.map((p) => ({ ...p })),
     pulls: INITIAL_PULLS.map((p) => ({ ...p })),
     onBreak: false,
+    duty: "floor",
     cred: INITIAL_CRED.map((e) => ({ ...e })),
   };
 }
@@ -372,6 +376,7 @@ export const useLane = create<LaneState>((set, get) => ({
     set({
       staff: { ...s.staff, you: on },
       onBreak: false,
+      duty: "floor",
       punches,
       ...pushChat(
         s.chat,
@@ -409,6 +414,7 @@ export const useLane = create<LaneState>((set, get) => ({
     const now = Date.now();
     set({
       onBreak: on,
+      duty: on ? "break" : "floor",
       punches: [
         ...s.punches,
         { who: "You", kind: on ? "break-start" : "break-end", at: now },
@@ -423,6 +429,34 @@ export const useLane = create<LaneState>((set, get) => ({
     return {
       ok: true,
       message: on ? "Break started. We’ll hold the queue." : "Welcome back.",
+    };
+  },
+
+  setDuty: (duty) => {
+    if (!get().staff.you) return { ok: false, message: "Check in first." };
+    if (duty === get().duty) return { ok: true, message: "Already set." };
+    if (duty !== "floor") {
+      const held = get().tickets.find(
+        (t) => t.valet === "You" && (t.status === "claimed" || t.status === "staged"),
+      );
+      if (held) return { ok: false, message: `Finish ${held.plate} before you step off.` };
+    }
+    const s = get();
+    const now = Date.now();
+    const punches = [...s.punches];
+    if (s.duty !== "floor" && duty === "floor") punches.push({ who: "You", kind: "break-end", at: now });
+    if (s.duty === "floor" && duty !== "floor") punches.push({ who: "You", kind: "break-start", at: now });
+    const line =
+      duty === "break" ? "You stepped off for a break." : duty === "food" ? "You stepped off for food." : "You’re back on the runway.";
+    set({
+      duty,
+      onBreak: duty !== "floor",
+      punches,
+      ...pushChat(s.chat, s.chatId, "Runway", line),
+    });
+    return {
+      ok: true,
+      message: duty === "break" ? "Break started." : duty === "food" ? "Food started." : "Welcome back.",
     };
   },
 

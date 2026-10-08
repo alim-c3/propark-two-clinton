@@ -22,10 +22,11 @@ export function ValetChat({ tone = "dark" }: { tone?: "light" | "dark" }) {
   const postChat = useLane((s) => s.postChat);
   const [draft, setDraft] = useState("");
   const dark = tone === "dark";
-  const end = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "end" });
+    const el = list.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [chat.length]);
 
   function send(text: string) {
@@ -48,7 +49,7 @@ export function ValetChat({ tone = "dark" }: { tone?: "light" | "dark" }) {
         Luis, Ana, Derrick, you. Residents never see this.
       </p>
 
-      <ol className="mt-3 flex max-h-72 flex-col gap-3 overflow-y-auto pr-1">
+      <ol ref={list} className="mt-3 flex max-h-72 flex-col gap-3 overflow-y-auto pr-1">
         {chat.map((m) => {
           if (m.kind === "system") {
             return (
@@ -99,7 +100,6 @@ export function ValetChat({ tone = "dark" }: { tone?: "light" | "dark" }) {
             </li>
           );
         })}
-        <div ref={end} />
       </ol>
 
       <div className="mt-3 flex flex-wrap gap-1.5">

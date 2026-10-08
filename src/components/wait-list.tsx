@@ -209,7 +209,9 @@ export function CurbPager({
           IF YOU ASK NOW
         </p>
         <p className="mt-2 font-display text-3xl text-gold sm:text-4xl">
-          {line.length ? placeLine(preview.place) : "You’re next in line"}
+          {line.length
+            ? placeLine(preview.place).replace("You’re", "You will be")
+            : "You will be next in line"}
         </p>
         <p className="mt-2 text-sm text-cream/80">
           {line.length

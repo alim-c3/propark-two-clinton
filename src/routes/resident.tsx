@@ -185,7 +185,7 @@ function Resident() {
               const r = cancel(live.id);
               toast[r.ok ? "success" : "error"](r.message);
             }}>Cancel this pickup</Button>
-            <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="rounded-2xl border-2 border-gold bg-gold/25 p-4">
               <label className="block text-[10px] font-bold tracking-[0.16em] text-gold-2">PUSH BACK PICKUP</label>
               <select
                 value={pushMin}
@@ -201,7 +201,7 @@ function Resident() {
                   toast[r.ok ? "success" : "error"](r.message);
                   setPushLine(
                     r.ok
-                      ? `You’ll be placed in the queue so your car is ready in ${minutes} min.`
+                      ? `You’ll be placed in the queue so your car is ready in ${minutes} min later.`
                       : "",
                   );
                 }}

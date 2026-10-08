@@ -204,13 +204,14 @@ export function CurbPager({
         </p>
       </section>
       <section className="mt-4 rounded-2xl border border-gold bg-navy px-4 py-5 text-cream">
-        <p className="font-display text-3xl text-gold sm:text-4xl">
+        <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.18em] text-gold">
+          <LiveDot />
           IF YOU ASK NOW
         </p>
-        <p className="mt-2 text-xl text-cream">
+        <p className="mt-2 font-display text-3xl text-gold sm:text-4xl">
           {line.length ? placeLine(preview.place) : "You’re next in line"}
         </p>
-        <p className="mt-1 text-xl text-cream">
+        <p className="mt-2 text-sm text-cream/80">
           {line.length
             ? preview.stillMin <= 1
               ? "approx 1 min wait"

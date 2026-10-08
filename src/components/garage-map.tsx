@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Search } from "lucide-react";
 import { fold, searchDeck } from "@/lib/search";
 import { STALLS } from "@/lib/seed";
@@ -118,13 +118,26 @@ function cells(): Cell[] {
   return out;
 }
 
-function fillFor(s: Stall | undefined, dest?: string, hit?: boolean) {
-  if (dest && s && dest === s.id) return "#16a34a";
-  if (hit) return "#c9a227";
-  if (s?.blockedBy) return "#c9a227";
-  if (s?.plate) return "#152033";
-  if (s && !s.plate) return "rgba(31,107,74,0.5)";
-  return undefined;
+const SAMPLE_CARS: Array<[string, string]> = [
+  ["Tesla Model 3", "EV-4410"],
+  ["Honda Accord", "HND-2284"],
+  ["Toyota Camry", "TNY-1902"],
+  ["BMW 330i", "BXY-7741"],
+  ["Audi A4", "AUD-3308"],
+  ["Hyundai Tucson", "HYU-6612"],
+  ["Ford Explorer", "FRD-9088"],
+  ["Mercedes C300", "MRC-1520"],
+];
+
+function sampleCar(id: string) {
+  let n = 0;
+  for (const ch of id) n = (n * 33 + ch.charCodeAt(0)) % 997;
+  const [car, plate] = SAMPLE_CARS[n % SAMPLE_CARS.length];
+  return { taken: n % 5 < 2, car, plate };
+}
+
+function fillFor(occupied: boolean) {
+  return occupied ? "#152033" : "#1f8a4c";
 }
 
 function Plate({
@@ -145,6 +158,17 @@ function Plate({
   const ink = "#152033";
   const layout = useMemo(() => cells(), []);
   const byId = (id: string) => stalls.find((s) => s.id === id);
+  const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
+
+  function showTip(event: MouseEvent<SVGGElement>, text: string) {
+    const box = event.currentTarget.ownerSVGElement?.parentElement?.getBoundingClientRect();
+    if (!box) return;
+    setTip({
+      text,
+      x: event.clientX - box.left + 12,
+      y: event.clientY - box.top + 14,
+    });
+  }
 
   return (
     <section className={cn("overflow-hidden rounded-2xl border", dark ? "border-navy-2 bg-[#1a2433] text-cream" : "border-line bg-[#f3efe4] text-navy")}>
@@ -199,17 +223,30 @@ function Plate({
           <text x="281" y="245" fontSize="2.6" fill="#c45a12" fontWeight="700">FE</text>
           {layout.map((p) => {
             const s = p.live ? byId(p.id) : undefined;
+            const sample = sampleCar(p.id);
+            const occupied = s ? Boolean(s.plate) : sample.taken;
             const isDest = dest === p.id;
             const active = sel === p.id || highlight === p.id || isDest || hitIds.has(p.id);
-            const fill = fillFor(s, dest, hitIds.has(p.id)) ?? "#d8d2c4";
-            const occupiedLook = Boolean(s?.plate) && !s?.blockedBy && !isDest;
+            const fill = isDest ? "#16a34a" : fillFor(occupied);
+            const tipText = occupied
+              ? s?.plate
+                ? `${s.car ?? "Vehicle"} · ${s.plate}`
+                : `${sample.car} · ${sample.plate}`
+              : `Open · ${sample.car}`;
             return (
-              <g key={`${level}-${p.id}-${p.x}-${p.y}`} onClick={() => p.live && onPick(p.id)} className={p.live ? "cursor-pointer" : undefined}>
-                <rect className={isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={isDest ? "#16a34a" : fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
+              <g
+                key={`${level}-${p.id}-${p.x}-${p.y}`}
+                onClick={() => p.live && onPick(p.id)}
+                onMouseEnter={(event) => showTip(event, tipText)}
+                onMouseMove={(event) => showTip(event, tipText)}
+                onMouseLeave={() => setTip(null)}
+                className="cursor-pointer"
+              >
+                <rect className={isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
                 <line x1={p.x + 8} y1={p.y + 8} x2={p.x + 8 + p.w} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 <line x1={p.x + 8 + p.w} y1={p.y + 8} x2={p.x + 8} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 {p.live ? (
-                  <text x={p.x + 8 + p.w / 2} y={p.y + 8 + Math.min(4.2, p.h / 2 + 1)} textAnchor="middle" fontSize="2.4" fontWeight="700" fill={occupiedLook ? "#f4efe4" : ink}>{p.id}</text>
+                  <text x={p.x + 8 + p.w / 2} y={p.y + 8 + Math.min(4.2, p.h / 2 + 1)} textAnchor="middle" fontSize="2.4" fontWeight="700" fill={occupied && !isDest ? "#f4efe4" : ink}>{p.id}</text>
                 ) : null}
               </g>
             );
@@ -219,6 +256,14 @@ function Plate({
           <text x="140" y="256" fontSize="3" fill="#6b6456">SOUTH</text>
           <text x="278" y="256" textAnchor="middle" fontSize="3" fill="#c9a227" fontWeight="700">DIVISION · VE</text>
         </svg>
+        {tip ? (
+          <div
+            className="pointer-events-none absolute z-10 max-w-48 rounded-lg bg-navy px-2.5 py-1.5 text-xs font-semibold text-cream shadow-lg"
+            style={{ left: tip.x, top: tip.y }}
+          >
+            {tip.text}
+          </div>
+        ) : null}
       </div>
     </section>
   );

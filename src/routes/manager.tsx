@@ -391,10 +391,7 @@ function Manager() {
                   <p className="mt-1 text-xs tabular-nums text-muted">{r.hit ? `${r.hit}% hit rate` : "Charge-gated"}</p>
                   <p className="mt-2 text-sm text-navy">{r.note}</p>
                   {decision ? (
-                    <p className="mt-3 text-sm font-semibold text-ok">
-                      {decision.decision === "approved" ? "Approved" : "Rejected"}
-                      {decision.sentTo ? ` · sent to the ${decision.sentTo === "resident" ? "resident" : "valets"}` : " · saved"}
-                    </p>
+                    <p className="mt-3 text-sm font-semibold text-ok">Pro-fit engine updated.</p>
                   ) : (
                     <div className="mt-3 flex gap-2">
                       <Button variant="navy" size="sm" onClick={() => decideInsight(r.unit, "approved")}>Approve</Button>

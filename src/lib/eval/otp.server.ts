@@ -8,7 +8,15 @@ import {
 } from "./config";
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
-import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, evaluatorHasCurrentTerms } from "./access.server";
+import {
+  clip,
+  createEvalSession,
+  findEvaluatorByEmail,
+  recordSignInAcceptance,
+  requestMeta,
+  upsertEvaluator,
+  type AcceptanceContext,
+} from "./access.server";
 import { writeEvalCookie } from "./session-cookie.server";
 import { RUNWAY_EVALUATION_TERMS_VERSION } from "./config";
 
@@ -29,8 +37,21 @@ function hashOtp(email: string, code: string): string {
   return sha256Hex(`${otpPepper()}:${normalizeEmail(email)}:${code}`);
 }
 
-export async function beginSignIn(emailRaw: string, origin: string) {
-  const email = normalizeEmail(emailRaw);
+/**
+ * Sign-in step 1 (after the visitor ticks the terms): rate-limit, create the
+ * one-time code, store the acceptance, email the admin, email the code.
+ * A code can only exist if the terms were accepted in the same step, and
+ * verifyOtp refuses any code that is not linked to an acceptance.
+ */
+export async function acceptTermsAndSendCode(input: {
+  email: string;
+  name: string;
+  origin: string;
+  context?: AcceptanceContext;
+}) {
+  const email = normalizeEmail(input.email);
+  const name = clip(input.name, 120);
+  if (!name) throw new EvalOtpError("Enter your full name.");
   try {
     const existing = await findEvaluatorByEmail(email);
     if (existing?.access_status === "revoked") {
@@ -38,14 +59,26 @@ export async function beginSignIn(emailRaw: string, origin: string) {
     }
   } catch (err) {
     if (err instanceof EvalOtpError) throw err;
-    console.error("[eval] could not check revoked status before sending code", err);
+    console.error("[eval] could not check revoked status", err);
   }
-  // Anyone may request a code. Typing an email proves nothing, so a code
-  // is always required before a session exists.
-  return { method: "otp" as const, ...(await requestOtp(email, origin)) };
+
+  const acceptanceId = newId("acc");
+  const sent = await requestOtp(email, input.origin, { acceptanceId, name });
+  await recordSignInAcceptance({
+    acceptanceId,
+    evaluator: sent.evaluator,
+    name,
+    context: input.context,
+  });
+  const { evaluator: _evaluator, ...publicResult } = sent;
+  return publicResult;
 }
 
-export async function requestOtp(emailRaw: string, origin: string) {
+async function requestOtp(
+  emailRaw: string,
+  origin: string,
+  link: { acceptanceId: string; name: string },
+) {
   const email = normalizeEmail(emailRaw);
   const sql = await getSql();
   const since = new Date(Date.now() - EVAL_OTP_WINDOW_MS).toISOString();
@@ -75,12 +108,17 @@ export async function requestOtp(emailRaw: string, origin: string) {
   const id = newId("otp");
   const expires = new Date(Date.now() + EVAL_OTP_TTL_MS).toISOString();
   await sql`
-    insert into eval_otp_challenges (id, email, code_hash, expires_at, ip_address)
-    values (${id}, ${email}, ${hashOtp(email, code)}, ${expires}::timestamptz, ${ip})
+    insert into eval_otp_challenges (
+      id, email, code_hash, expires_at, ip_address, terms_acceptance_id
+    )
+    values (
+      ${id}, ${email}, ${hashOtp(email, code)}, ${expires}::timestamptz, ${ip},
+      ${link.acceptanceId}
+    )
   `;
-  await upsertEvaluator({ email });
+  const evaluator = await upsertEvaluator({ email, name: link.name });
 
-  const verifyUrl = `${origin}/login?email=${encodeURIComponent(email)}`;
+  const verifyUrl = `${origin}/eval/terms?email=${encodeURIComponent(email)}`;
   const copy = otpEmailCopy({ email, code, verifyUrl });
   const sent = await sendEvalEmail({ to: email, ...copy });
   const echo =
@@ -92,6 +130,8 @@ export async function requestOtp(emailRaw: string, origin: string) {
     provider: sent.provider,
     expiresInSeconds: EVAL_OTP_TTL_MS / 1000,
     devCode: echo,
+    accessStatus: evaluator.access_status,
+    evaluator,
   };
 }
 
@@ -108,15 +148,19 @@ export async function verifyOtp(emailRaw: string, codeRaw: string) {
     expires_at: string;
     consumed_at: string | null;
     attempts: number;
+    terms_acceptance_id: string | null;
   }>`
-    select id, code_hash, expires_at, consumed_at, attempts
+    select id, code_hash, expires_at, consumed_at, attempts, terms_acceptance_id
     from eval_otp_challenges
     where email = ${email}
     order by created_at desc
     limit 1
   `;
   const challenge = rows[0];
-  if (!challenge) throw new EvalOtpError("No sign-in code found. Request a new code.");
+  if (!challenge) throw new EvalOtpError("No sign-in code found. Start again.");
+  if (!challenge.terms_acceptance_id) {
+    throw new EvalOtpError("Accept the terms to get a sign-in code. Start again.");
+  }
   if (challenge.consumed_at) throw new EvalOtpError("That code was already used. Request a new code.");
   if (new Date(challenge.expires_at).getTime() < Date.now()) {
     throw new EvalOtpError("That code has expired. Request a new code.");
@@ -146,18 +190,17 @@ export async function verifyOtp(emailRaw: string, codeRaw: string) {
     throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
   }
   await createEvalSession(evaluator.id);
-  const acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
   await writeEvalCookie({
     email,
     verified: true,
     accessStatus: evaluator.access_status,
-    acceptedVersion: acceptedCurrentTerms ? RUNWAY_EVALUATION_TERMS_VERSION : null,
+    acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
     evaluatorId: evaluator.id,
   });
   return {
     ok: true as const,
     email,
     accessStatus: evaluator.access_status,
-    acceptedCurrentTerms,
+    name: evaluator.name,
   };
 }

@@ -375,38 +375,25 @@ export type AcceptanceContext = {
   referrer?: string | null;
 };
 
-function clip(value: string | null | undefined, max = 300): string | null {
+export function clip(value: string | null | undefined, max = 300): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed.slice(0, max) : null;
 }
 
-export async function recordAcceptance(input: {
-  name?: string | null;
+/**
+ * Stores one terms acceptance and emails the admin. Runs on EVERY sign-in,
+ * before the one-time code is sent, so the email is not verified yet at this
+ * point. Rows are append-only. A mail or database failure is logged and never
+ * blocks the sign-in.
+ */
+export async function recordSignInAcceptance(input: {
+  acceptanceId: string;
+  evaluator: { id: string; email: string; name: string | null; access_status: EvaluatorAccessStatus };
+  name: string | null;
   organization?: string | null;
   context?: AcceptanceContext;
-}): Promise<EvalStatus> {
-  const status = await readEvalStatus();
-  if (!status.authenticated || !status.evaluatorId || !status.email) {
-    throw new EvalAccessError("Unauthorized", 401);
-  }
-  if (!status.emailVerified) {
-    throw new EvalAccessError("Email is not verified", 403);
-  }
-  if (status.accessStatus === "revoked") {
-    throw new EvalAccessError("Evaluation access revoked", 403);
-  }
-  // Anyone with a verified email may accept the terms. Whether they get in is
-  // decided separately by the admin (pending -> active).
-
-  const claims = await readEvalCookie();
-  if (!claims || claims.email !== status.email) {
-    throw new EvalAccessError("Unauthorized", 401);
-  }
-  await writeEvalCookie({
-    ...claims,
-    acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
-  });
-
+}): Promise<void> {
+  const { evaluator } = input;
   const meta = requestMeta();
   const acceptedAt = new Date().toISOString();
   const acceptHeaders = getRequest()?.headers;
@@ -417,7 +404,7 @@ export async function recordAcceptance(input: {
     screen: clip(input.context?.screen, 40),
   };
   const agreement = currentAgreement();
-  const displayName = clip(input.name) ?? status.name;
+  const displayName = clip(input.name) ?? evaluator.name;
 
   try {
     await ensureAgreementSeeded();
@@ -426,18 +413,6 @@ export async function recordAcceptance(input: {
       select sha256 from evaluation_agreements where version = ${agreement.version} limit 1
     `;
     const hash = seeded[0]?.sha256 ?? agreement.sha256;
-
-    if (input.name || input.organization) {
-      await sql`
-        update evaluators
-        set
-          name = coalesce(${input.name ?? null}, name),
-          organization = coalesce(${input.organization ?? null}, organization),
-          updated_at = now()
-        where id = ${status.evaluatorId}
-      `;
-    }
-
     await sql`
       insert into legal_acceptances (
         id, user_id, evaluator_id, email, name, organization,
@@ -446,12 +421,12 @@ export async function recordAcceptance(input: {
         user_agent, acceptance_method, environment, account_status,
         accept_language, referrer, time_zone, screen
       ) values (
-        ${newId("acc")},
-        ${status.userId},
-        ${status.evaluatorId},
-        ${status.email},
-        ${input.name ?? status.name},
-        ${input.organization ?? status.organization},
+        ${input.acceptanceId},
+        ${null},
+        ${evaluator.id},
+        ${evaluator.email},
+        ${displayName},
+        ${input.organization ?? null},
         ${agreement.name},
         ${agreement.version},
         ${agreement.effectiveDate},
@@ -462,7 +437,7 @@ export async function recordAcceptance(input: {
         ${meta.userAgent},
         ${"clickwrap"},
         ${currentEnvironment()},
-        ${status.accessStatus},
+        ${evaluator.access_status},
         ${context.language},
         ${context.referrer},
         ${context.timeZone},
@@ -474,10 +449,10 @@ export async function recordAcceptance(input: {
   }
 
   await notifyAdminOfAcceptance({
-    email: status.email,
+    email: evaluator.email,
     name: displayName,
-    organization: input.organization ?? status.organization,
-    accessStatus: status.accessStatus ?? "pending",
+    organization: input.organization ?? null,
+    accessStatus: evaluator.access_status,
     agreementName: agreement.name,
     agreementVersion: agreement.version,
     acceptedAt,
@@ -485,19 +460,6 @@ export async function recordAcceptance(input: {
     userAgent: meta.userAgent,
     ...context,
   });
-  // The cookie written above is not visible to this request yet, so report the
-  // post-acceptance state explicitly instead of re-reading the stale cookie.
-  const fresh = await readEvalStatus();
-  return {
-    ...fresh,
-    acceptedCurrentTerms: true,
-    acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
-    canAccess: canAccessProtectedRunway({
-      emailVerified: fresh.emailVerified,
-      accessStatus: fresh.accessStatus ?? "pending",
-      acceptedCurrentTerms: true,
-    }),
-  };
 }
 
 function requestOriginFromHeaders(): string {
@@ -537,7 +499,7 @@ async function notifyAdminOfAcceptance(info: {
         : "An approved user accepted the Runway terms.",
       "",
       line("Name", info.name),
-      line("Email (verified by code)", info.email),
+      line("Email (a sign-in code was just sent to it; not verified yet)", info.email),
       line("Organization", info.organization),
       line("Status", info.accessStatus),
       "",

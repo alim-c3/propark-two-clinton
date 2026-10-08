@@ -23,7 +23,7 @@ function Home() {
             Get going. We’ll help you take off.
           </h1>
           <p className="mt-4 max-w-xl text-base text-cream/90 sm:text-lg">
-            Enter your email to evaluate Runway. Confirm it with a code and accept the terms.
+            Enter your email to evaluate Runway. Accept the terms, then confirm with a 6-digit code.
             Once you&rsquo;re approved, Features, Resident, Valet, and Manager open for you.
           </p>
           <HomeAccessForm />
@@ -44,8 +44,11 @@ function HomeAccessForm() {
     setBusy(true);
     setError(null);
     try {
-      // The code step lives on /login; typing an email alone never signs anyone in.
-      await navigate({ to: "/login", search: { next: "/resident", email } });
+      // Terms first, then the emailed code. Typing an email alone signs no one in.
+      await navigate({
+        to: "/eval/terms",
+        search: { next: "/resident", email: email.trim().toLowerCase() },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not continue.");
     } finally {

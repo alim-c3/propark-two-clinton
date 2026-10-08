@@ -35,36 +35,11 @@ export const getEvalStatus = createServerFn({ method: "POST" }).handler(
   },
 );
 
-export const startEvalSignIn = createServerFn({ method: "POST" })
-  .inputValidator((data: { email: string }) => data)
-  .handler(async ({ data }) => {
-    const email = normalizeEmail(data.email ?? "");
-    if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
-    const { beginSignIn } = await import("./otp.server");
-    return beginSignIn(email, await requestOrigin());
-  });
-
-export const requestEvalCode = createServerFn({ method: "POST" })
-  .inputValidator((data: { email: string }) => data)
-  .handler(async ({ data }) => {
-    const email = normalizeEmail(data.email ?? "");
-    if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
-    const { requestOtp } = await import("./otp.server");
-    return requestOtp(email, await requestOrigin());
-  });
-
-export const verifyEvalCode = createServerFn({ method: "POST" })
-  .inputValidator((data: { email: string; code: string }) => data)
-  .handler(async ({ data }) => {
-    const { verifyOtp } = await import("./otp.server");
-    return verifyOtp(data.email, data.code);
-  });
-
-export const acceptEvalTerms = createServerFn({ method: "POST" })
+export const acceptEvalTermsAndSendCode = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
-      name?: string;
-      organization?: string;
+      email: string;
+      name: string;
       timeZone?: string;
       language?: string;
       screen?: string;
@@ -72,10 +47,13 @@ export const acceptEvalTerms = createServerFn({ method: "POST" })
     }) => data,
   )
   .handler(async ({ data }) => {
-    const { recordAcceptance } = await import("./access.server");
-    return recordAcceptance({
-      name: data.name?.trim() || null,
-      organization: data.organization?.trim() || null,
+    const email = normalizeEmail(data.email ?? "");
+    if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
+    const { acceptTermsAndSendCode } = await import("./otp.server");
+    return acceptTermsAndSendCode({
+      email,
+      name: data.name ?? "",
+      origin: await requestOrigin(),
       context: {
         timeZone: data.timeZone,
         language: data.language,
@@ -83,6 +61,13 @@ export const acceptEvalTerms = createServerFn({ method: "POST" })
         referrer: data.referrer,
       },
     });
+  });
+
+export const verifyEvalCode = createServerFn({ method: "POST" })
+  .inputValidator((data: { email: string; code: string }) => data)
+  .handler(async ({ data }) => {
+    const { verifyOtp } = await import("./otp.server");
+    return verifyOtp(data.email, data.code);
   });
 
 export const signOutEval = createServerFn({ method: "POST" }).handler(async () => {

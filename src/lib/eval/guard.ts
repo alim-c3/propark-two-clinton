@@ -30,7 +30,8 @@ export async function enforceEvalNavigation(pathname: string) {
       throw redirect({ to: "/eval/revoked" });
     }
     if (!status.acceptedCurrentTerms) {
-      throw redirect({ to: "/eval/terms", search: { next } });
+      // Terms changed since this session started: sign in again to re-accept.
+      throw redirect({ to: "/login", search: { next } });
     }
     if (status.accessStatus !== "active") {
       throw redirect({ to: "/eval/pending" });

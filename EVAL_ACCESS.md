@@ -1,8 +1,8 @@
 # Runway evaluation access
 
-Flow (v0.91): public home → email → one-time code (always required) → name + Runway Evaluation Terms → Runway if approved, otherwise "Request received" until the admin approves.
+Flow (v0.91), repeated on EVERY sign-in: email → name + Runway Evaluation Terms (stored and emailed to the admin) → 6-digit code emailed right after → either "Waiting for approval" or "You're approved, start using Runway". A code is only issued as part of an acceptance (`eval_otp_challenges.terms_acceptance_id`), and verification refuses a code without one.
 
-Anyone can verify an email and accept the terms. Every acceptance is stored in `legal_acceptances` (name, email, IP, device, language, time zone, screen, referrer, terms version) and emailed to the admin(s) in `RUNWAY_EVAL_ADMIN_EMAILS` / `DEFAULT_ADMIN_EMAILS` (needs `RESEND_API_KEY`; without it the email is only logged).
+Anyone can accept the terms and request a code. Every acceptance is stored in `legal_acceptances` (name, email, IP, device, language, time zone, screen, referrer, terms version) and emailed to the admin(s) in `RUNWAY_EVAL_ADMIN_EMAILS` / `DEFAULT_ADMIN_EMAILS` (needs `RESEND_API_KEY`; without it the email is only logged).
 
 Approval: open `/admin` (redirects to `/admin/evaluators`), click Approve next to the person, or add an email to pre-approve it. Pre-approved emails in `src/lib/eval/config.ts` (`DEFAULT_ALLOWED_EMAILS`) and `RUNWAY_EVAL_ALLOWED_EMAILS` stay approved automatically.
 

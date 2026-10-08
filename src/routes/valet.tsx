@@ -57,6 +57,7 @@ function Valet() {
   const cred = useLane((s) => s.cred);
   const keyPings = useLane((s) => s.keyPings);
   const returnKeys = useLane((s) => s.returnKeys);
+  const floorTasks = useLane((s) => s.floorTasks);
 
   function keysOpen(t: Ticket) {
     return keyPings.some(
@@ -173,6 +174,21 @@ function Valet() {
 
             <div className="mt-6 space-y-6">
               <YourShift />
+              {floorTasks.length ? (
+                <section>
+                  <h2 className="font-display text-2xl">Tasks from the desk</h2>
+                  <div className="mt-3 flex flex-col gap-3">
+                    {floorTasks.map((task) => (
+                      <article key={task.id} className="rounded-2xl border border-gold/40 bg-navy-2 p-4">
+                        <p className="text-[10px] font-bold tracking-[0.16em] text-gold">TASK</p>
+                        <p className="mt-1 font-display text-xl">{task.car} · {task.plate}</p>
+                        <p className="text-xs text-cream/55">APT {task.unit} · {task.stall}</p>
+                        <p className="mt-2 text-sm text-cream/80">{task.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               <HostStand tickets={tickets} staff={staff} tone="dark" />
               <KeyReturn />
               {!parking ? (

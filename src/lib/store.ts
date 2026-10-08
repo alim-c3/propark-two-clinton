@@ -4,7 +4,7 @@ import { credEvent, INITIAL_CRED, scoreOf, type CredEvent, type CredKind } from 
 import { pickInboundStall, runPlan, stallCode, stallTaken } from "./run";
 import { CONTACTS, INITIAL_CHAT, INITIAL_RIDE_PINGS, INITIAL_TICKETS, RESTACK, residentOf, STALLS, keyRequestCopy, ridePingCopy } from "./seed";
 import { etaMin, placeLine, retrieveQueue, stillLine } from "./queue";
-import type { ChatMsg, DeskNote, KeyPing, Punch, Result, RidePing, ShiftPull, Ticket, TicketStatus, TicketType } from "./types";
+import type { ChatMsg, DeskNote, FloorTask, KeyPing, Punch, Result, RidePing, ShiftPull, Ticket, TicketStatus, TicketType } from "./types";
 
 type StaffKey = "you" | "Luis" | "Ana" | "Derrick";
 type RestackState = "pending" | "accepted" | "dismissed";
@@ -23,6 +23,8 @@ type LaneState = {
   deskNotes: DeskNote[];
   noteId: number;
   insightCalls: Record<string, { decision: "approved" | "rejected"; sentTo?: "resident" | "valet" }>;
+  floorTasks: FloorTask[];
+  taskId: number;
   punches: Punch[];
   pulls: ShiftPull[];
   onBreak: boolean;
@@ -50,7 +52,10 @@ type LaneState = {
   decideInsight: (
     id: string,
     decision: "approved" | "rejected",
-    message?: { to: "resident" | "valet"; unit?: string; body: string },
+    notice?: {
+      residentEmail?: { unit: string; subject: string; body: string };
+      valetTask?: { unit: string; car: string; plate: string; stall: string; body: string };
+    },
   ) => Result;
   reset: () => void;
 };
@@ -121,6 +126,8 @@ function fresh(): Pick<
   | "deskNotes"
   | "noteId"
   | "insightCalls"
+  | "floorTasks"
+  | "taskId"
   | "punches"
   | "pulls"
   | "onBreak"
@@ -140,6 +147,8 @@ function fresh(): Pick<
     deskNotes: [],
     noteId: 1,
     insightCalls: {},
+    floorTasks: [],
+    taskId: 1,
     punches: INITIAL_PUNCHES.map((p) => ({ ...p })),
     pulls: INITIAL_PULLS.map((p) => ({ ...p })),
     onBreak: false,
@@ -794,48 +803,58 @@ export const useLane = create<LaneState>((set, get) => ({
     return { ok: true, message: `Texted ${c.name}.` };
   },
 
-  decideInsight: (id, decision, message) => {
+  decideInsight: (id, decision, notice) => {
     const s = get();
-    const remembered = {
-      insightCalls: {
-        ...s.insightCalls,
-        [id]: {
-          decision,
-          ...(message?.body.trim()
-            ? { sentTo: message.to }
-            : {}),
-        },
-      },
-    };
-    if (!message?.body.trim()) {
-      set(remembered);
-      return { ok: true, message: decision === "approved" ? "Approved and saved." : "Rejected and saved." };
-    }
-    if (message.to === "resident") {
-      const unit = message.unit ?? "";
-      const c = CONTACTS.find((x) => x.unit === unit);
-      if (!c) {
-        set({
-          insightCalls: {
-            ...s.insightCalls,
-            [id]: { decision },
-          },
-        });
-        return { ok: true, message: "Saved. No resident to text." };
+    const email = notice?.residentEmail;
+    const task = notice?.valetTask;
+    const sentTo = email ? "resident" : task ? "valet" : undefined;
+    let noteId = s.noteId;
+    let deskNotes = s.deskNotes;
+    let taskId = s.taskId;
+    let floorTasks = s.floorTasks;
+    let chat = s.chat;
+    let chatId = s.chatId;
+    if (email?.body.trim()) {
+      const c = CONTACTS.find((x) => x.unit === email.unit);
+      if (c) {
+        noteId += 1;
+        deskNotes = [
+          { id: noteId, unit: email.unit, subject: email.subject, body: email.body.trim(), at: Date.now() },
+          ...deskNotes,
+        ];
       }
-      const note: DeskNote = { id: s.noteId + 1, unit, body: message.body.trim(), at: Date.now() };
-      set({
-        ...remembered,
-        noteId: note.id,
-        deskNotes: [note, ...s.deskNotes],
-      });
-      return { ok: true, message: `Texted ${c.name}.` };
+    }
+    if (task?.body.trim()) {
+      taskId += 1;
+      floorTasks = [
+        {
+          id: taskId,
+          unit: task.unit,
+          car: task.car,
+          plate: task.plate,
+          stall: task.stall,
+          body: task.body.trim(),
+          at: Date.now(),
+        },
+        ...floorTasks,
+      ];
+      const posted = pushChat(chat, chatId, "Runway", `Task · APT ${task.unit} · ${task.car}. ${task.body.trim()}`);
+      chat = posted.chat;
+      chatId = posted.chatId;
     }
     set({
-      ...remembered,
-      ...pushChat(s.chat, s.chatId, "Runway", message.body.trim()),
+      insightCalls: { ...s.insightCalls, [id]: { decision, ...(sentTo ? { sentTo } : {}) } },
+      noteId,
+      deskNotes,
+      taskId,
+      floorTasks,
+      chat,
+      chatId,
     });
-    return { ok: true, message: "Sent to the floor." };
+    if (email && task) return { ok: true, message: "Pro-fit engine updated. Resident emailed. Valets tasked." };
+    if (email) return { ok: true, message: "Pro-fit engine updated. Resident emailed." };
+    if (task) return { ok: true, message: "Pro-fit engine updated. Valets tasked." };
+    return { ok: true, message: "Pro-fit engine updated." };
   },
 
   reset: () => set({ ...fresh(), activeUnit: get().activeUnit }),

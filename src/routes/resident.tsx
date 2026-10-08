@@ -267,9 +267,13 @@ function Resident() {
 
         {desk ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">TEXT · {me.phone}</p>
-            <p className="mt-1 font-display text-xl text-navy">Note from the desk</p>
-            <p className="mt-1 text-sm text-navy/80">{desk.body}</p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">EMAIL · {me.email}</p>
+            <p className="mt-1 font-display text-xl text-navy">The desk sent you a request</p>
+            <div className="mt-3 rounded-xl bg-white px-3 py-3 text-sm text-navy">
+              <p className="flex items-center gap-2 text-[10px] font-bold tracking-wide text-gold-2"><Mail className="size-3.5" /> EMAIL · {me.email}</p>
+              <p className="mt-1 font-semibold">{desk.subject}</p>
+              <p className="mt-1">{desk.body}</p>
+            </div>
           </section>
         ) : null}
 

@@ -24,7 +24,7 @@ import { KeyReturn } from "@/components/key-return";
 import { Button } from "@/components/ui/button";
 import { ValetChat } from "@/components/valet-chat";
 import { HostStand } from "@/components/wait-list";
-import { FINGERPRINTS, FORECAST, RESTACK } from "@/lib/seed";
+import { FINGERPRINTS, FORECAST, RESTACK, STALLS } from "@/lib/seed";
 import { useLane } from "@/lib/store";
 import { cn, useNow } from "@/lib/utils";
 
@@ -254,19 +254,28 @@ function Manager() {
   function decideInsight(unitLabel: string, decision: "approved" | "rejected") {
     const row = FINGERPRINTS.find((r) => r.unit === unitLabel);
     if (!row) return;
-    const resident = unitLabel.startsWith("702");
-    const body = resident
-      ? decision === "approved"
-        ? `Runway: we’d like a standing pickup for your ${row.car}. Out ${row.leave}, back ${row.back}. ${row.note}.`
-        : `Runway: we’re not adding a standing pickup for your ${row.car}. ${row.note}. Ask when you need the car.`
-      : decision === "approved"
-        ? `Pro-fit approved: ${row.unit} · ${row.car}. ${row.note}.`
-        : `Pro-fit rejected: ignore “${row.note}” for ${row.unit} · ${row.car}.`;
-    const result = decideInsightCall(
-      unitLabel,
-      decision,
-      body ? { to: resident ? "resident" : "valet", unit: unitLabel.split(" ")[0], body } : undefined,
-    );
+    const unit = unitLabel.split(" ")[0];
+    const stall = STALLS.find((s) => s.unit === unit && s.plate);
+    const residentActs = unit === "702" && decision === "approved";
+    const valetActs = unit !== "702" && decision === "approved";
+    const result = decideInsightCall(unitLabel, decision, {
+      residentEmail: residentActs
+        ? {
+            unit,
+            subject: `Standing Thursday pickup · ${row.car}`,
+            body: `The desk can add a standing pickup for your ${row.car}. Out ${row.leave}, back ${row.back}. ${row.note}. Open Runway if you want it on your list.`,
+          }
+        : undefined,
+      valetTask: valetActs
+        ? {
+            unit,
+            car: row.car,
+            plate: stall?.plate ?? "—",
+            stall: stall?.id ?? "—",
+            body: row.note,
+          }
+        : undefined,
+    });
     toast[result.ok ? "success" : "error"](result.message);
   }
 
@@ -391,7 +400,9 @@ function Manager() {
                   <p className="mt-1 text-xs tabular-nums text-muted">{r.hit ? `${r.hit}% hit rate` : "Charge-gated"}</p>
                   <p className="mt-2 text-sm text-navy">{r.note}</p>
                   {decision ? (
-                    <p className="mt-3 text-sm font-semibold text-ok">Pro-fit engine updated.</p>
+                    <p className="mt-3 text-sm font-semibold text-ok">
+                      Pro-fit engine updated.{decision.sentTo === "resident" ? " Resident notified." : decision.sentTo === "valet" ? " Valets notified." : ""}
+                    </p>
                   ) : (
                     <div className="mt-3 flex gap-2">
                       <Button variant="navy" size="sm" onClick={() => decideInsight(r.unit, "approved")}>Approve</Button>

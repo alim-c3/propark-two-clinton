@@ -101,6 +101,17 @@ export type DeskNote = {
   unit: string;
   body: string;
   at: number;
+  subject?: string;
+};
+
+export type FloorTask = {
+  id: number;
+  unit: string;
+  car: string;
+  plate: string;
+  stall: string;
+  body: string;
+  at: number;
 };
 
 export type RidePing = {

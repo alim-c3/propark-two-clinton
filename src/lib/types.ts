@@ -85,12 +85,15 @@ export type KeyPing = {
   name: string;
   email: string;
   phone: string;
-  status: "sent" | "acked";
+  status: "sent" | "acked" | "resolved";
   at: number;
   by: string;
   sms: string;
   emailSubject: string;
   emailBody: string;
+  resolvedAt?: number;
+  resolvedBy?: string;
+  resolvedHow?: "parked" | "keys_returned" | "cancelled" | "closed";
 };
 
 export type RidePing = {

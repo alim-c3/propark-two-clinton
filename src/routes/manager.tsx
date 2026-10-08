@@ -26,7 +26,7 @@ import { ValetChat } from "@/components/valet-chat";
 import { HostStand } from "@/components/wait-list";
 import { FINGERPRINTS, FORECAST, RESTACK } from "@/lib/seed";
 import { useLane } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, useNow } from "@/lib/utils";
 
 export const Route = createFileRoute("/manager")({
   beforeLoad: () => enforceEvalNavigation("/manager"),
@@ -92,7 +92,7 @@ function CarsPerHour() {
   const stamp = day === "today" ? today : tomorrow;
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-4">
+    <section id="forecast" className="rounded-2xl border border-line bg-white p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">CARS PER HOUR</p>
@@ -151,20 +151,102 @@ function CarsPerHour() {
   );
 }
 
+const STAFF_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+function hourNum(label: string) {
+  const n = parseInt(label, 10);
+  if (label.endsWith("p") && n !== 12) return n + 12;
+  if (label.endsWith("a") && n === 12) return 0;
+  return n;
+}
+
+function nyHour(now: number) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(new Date(now));
+  return Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+}
+
+function staffWord(n: number) {
+  return STAFF_WORDS[n] ?? String(n);
+}
+
+function backWithinHour(note: string, now: number) {
+  const label = note.split("Expected back:")[1] ?? "";
+  if (/tomorrow|more than/i.test(label)) return false;
+  const match = label.match(/(\d+)\s*(am|pm)/i);
+  if (!match) return false;
+  let hour = Number(match[1]) % 12;
+  if (/pm/i.test(match[2])) hour += 12;
+  const start = new Date(now);
+  start.setHours(hour, 0, 0, 0);
+  if (start.getTime() < now - 30 * 60000) start.setDate(start.getDate() + 1);
+  return start.getTime() <= now + 60 * 60000 && start.getTime() >= now - 15 * 60000;
+}
+
 function Manager() {
   const tickets = useLane((s) => s.tickets);
   const staff = useLane((s) => s.staff);
   const restack = useLane((s) => s.restack);
   const acceptRestack = useLane((s) => s.acceptRestack);
   const dismissRestack = useLane((s) => s.dismissRestack);
+  const now = useNow();
+  const [foundStall, setFoundStall] = useState<string | undefined>();
 
   const live = tickets.filter((t) => t.status !== "cancelled" && t.status !== "released");
   const onFloor = Object.values(staff).filter(Boolean).length;
   const nested = live.filter((t) => t.blockedBy);
   const waiting = live.filter((t) => t.type === "now" && t.status === "open");
   const inbound = live.filter((t) => t.type === "arrival");
-  const coverage = onFloor >= 5 ? "covered" : "tight";
   const pendingMoves = RESTACK.filter((r) => restack[r.id] === "pending");
+  const requestsNow = live.filter(
+    (t) => (t.type === "now" || t.type === "scheduled") && (t.status === "open" || t.status === "claimed"),
+  );
+  const oldestRequest = requestsNow.reduce((min, t) => Math.min(min, t.requestedAt), Number.POSITIVE_INFINITY);
+  const putBacks = live.filter((t) => t.type === "arrival" && (t.status === "open" || t.status === "claimed"));
+  const oldestPutBack = putBacks.reduce((min, t) => Math.min(min, t.requestedAt), Number.POSITIVE_INFINITY);
+  const putBackForecast = tickets.filter((t) => /Expected back:/i.test(t.note) && backWithinHour(t.note, now)).length;
+  const curbSamples = tickets
+    .filter((t) => (t.type === "now" || t.type === "scheduled") && t.stagedAt)
+    .map((t) => Math.max(1, Math.round((t.stagedAt! - t.requestedAt) / 60000)));
+  const openWaits = requestsNow.map((t) => Math.max(0, Math.round((now - t.requestedAt) / 60000)));
+  const slaAvg = curbSamples.length
+    ? Math.round(curbSamples.reduce((a, b) => a + b, 0) / curbSamples.length)
+    : openWaits.length
+      ? Math.round(openWaits.reduce((a, b) => a + b, 0) / openWaits.length)
+      : 0;
+  const longest = Math.max(0, ...curbSamples, ...openWaits);
+  const slaOver = slaAvg > 10;
+  const clock = nyHour(now);
+  const upcoming = FORECAST.filter((r) => hourNum(r.hour) > clock);
+  const peak = (upcoming.length ? upcoming : FORECAST).reduce((best, row) => (row.pulls > best.pulls ? row : best));
+  const required = Math.ceil(peak.pulls / CARS_PER_VALET_HR);
+  const short = required > onFloor;
+  const nextHour = (clock + 1) % 24;
+  const pace = FORECAST.find((r) => hourNum(r.hour) === nextHour)?.pulls
+    ?? FORECAST.find((r) => hourNum(r.hour) === clock)?.pulls
+    ?? peak.pulls;
+  const scheduledSoon = live.filter((t) => t.type === "scheduled" && t.status === "open").length;
+  const forecast60 = Math.max(pace, scheduledSoon);
+  const capacity = Math.max(1, onFloor) * CARS_PER_VALET_HR;
+  const openRequests = live.filter((t) => t.type === "now" && t.status !== "staged" && t.status !== "released").length;
+
+  function seeForecast() {
+    document.getElementById("forecast")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const stats: Array<{ k: string; v: string; s: string; tone?: "ok" | "danger" }> = [
+    ["ON THE FLOOR", String(onFloor), "Luis · Derrick · you if clocked"],
+    ["NEST NAMED", String(nested.length), nested[0] ? `${nested[0].blockedBy} in front of ${nested[0].plate}` : "Clear"],
+    ["IN LINE", String(waiting.length), inbound.length ? `+ ${inbound.length} inbound` : "Now-requests"],
+    ["REQUESTS NOW", String(requestsNow.length), Number.isFinite(oldestRequest) ? `Oldest waiting ${Math.max(0, Math.round((now - oldestRequest) / 60000))} min` : "None waiting"],
+    ["FORECAST, NEXT 60 MIN", String(forecast60), `capacity ${capacity}/hr`],
+    ["PUT-BACKS NOW", String(putBacks.length), Number.isFinite(oldestPutBack) ? `Oldest waiting ${Math.max(0, Math.round((now - oldestPutBack) / 60000))} min` : "None waiting"],
+    ["PUT-BACKS, NEXT 60 MIN", String(putBackForecast), "From expected-back answers"],
+    ["SLA TO CURB", `${slaAvg} min`, `target 10 min · longest ${longest} min`, slaOver ? "danger" : "ok"],
+  ].map((row) => ({ k: row[0], v: row[1], s: row[2], tone: row[3] as "ok" | "danger" | undefined }));
 
   return (
     <div className="min-h-screen bg-cream">
@@ -174,36 +256,59 @@ function Manager() {
         <div className="mt-4 overflow-hidden rounded-2xl bg-navy text-cream">
           <div className="grid md:grid-cols-2">
             <div className="p-6">
-              <p className="text-[10px] font-bold tracking-[0.18em] text-gold">TOWER · RUNWAY</p>
-              <h1 className="mt-2 font-display text-3xl">Will the 8:00 wave get off the ground?</h1>
+              <p className="text-[10px] font-bold tracking-[0.18em] text-gold">CONTROL TOWER INSIGHT</p>
+              <h1 className="mt-2 font-display text-3xl">
+                {short ? `Will the ${parseInt(peak.hour, 10)}:00 wave get off the ground?` : "Next hour is covered"}
+              </h1>
               <p className="mt-2 max-w-md text-sm text-cream/70">
-                {onFloor} valets on the floor. Coverage is {coverage}. 45 pulls at 8a today. Capacity is 10 cars per valet per hour — five valets clear the wave.
+                {short
+                  ? `${onFloor} valets on the floor. ${peak.pulls} pulls at ${peak.hour}. ${staffWord(required)[0].toUpperCase()}${staffWord(required).slice(1)} valets clear the wave.`
+                  : `${onFloor} valets cover ${peak.pulls} pulls at ${peak.hour}. Capacity is ${capacity} cars an hour.`}
               </p>
-              <p className={cn("mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide", coverage === "tight" ? "bg-gold text-navy" : "bg-ok text-cream")}>
-                {coverage === "tight" ? "Staff five before 8a" : "Shift is covered"}
-              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ["VALETS", String(onFloor)],
+                  ["OPEN NOW", String(openRequests)],
+                  ["SLA", `${slaAvg} min`],
+                  ["PEAK", `${peak.pulls} vs ${capacity}`],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold tracking-[0.14em] text-gold">{k}</p>
+                    <p className="font-display text-2xl tabular-nums">{v}</p>
+                  </div>
+                ))}
+              </div>
+              {short ? (
+                <Button className="mt-4 uppercase" variant="gold" onClick={seeForecast}>
+                  Staff {staffWord(required)} before {peak.hour}
+                </Button>
+              ) : (
+                <button type="button" className="mt-4 text-sm text-cream/70 underline" onClick={seeForecast}>
+                  See today’s forecast
+                </button>
+              )}
             </div>
             <img src="/flow-manager.jpg" alt="Ops desk overlooking Two Clinton Park" className="h-48 w-full object-cover object-center md:h-full" />
           </div>
         </div>
-        <div className="mt-4"><BuyProof /></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {[
-            ["ON THE FLOOR", String(onFloor), "Luis · Derrick · you if clocked"],
-            ["NEST NAMED", String(nested.length), nested[0] ? `${nested[0].blockedBy} in front of ${nested[0].plate}` : "Clear"],
-            ["IN LINE", String(waiting.length), inbound.length ? `+ ${inbound.length} inbound` : "Now-requests"],
-          ].map(([k, v, s]) => (
-            <div key={k} className="rounded-2xl border border-line bg-white p-4">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">{k}</p>
-              <p className="font-display text-3xl tabular-nums text-navy">{v}</p>
-              <p className="text-xs text-muted">{s}</p>
+        <div className="mt-4"><CarsPerHour /></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((tile) => (
+            <div key={tile.k} className="rounded-2xl border border-line bg-white p-4">
+              <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">{tile.k}</p>
+              <p className={cn("font-display text-3xl tabular-nums", tile.tone === "danger" ? "text-danger" : tile.tone === "ok" ? "text-ok" : "text-navy")}>{tile.v}</p>
+              <p className="text-xs text-muted">{tile.s}</p>
             </div>
           ))}
         </div>
-        <div className="mt-4"><CarsPerHour /></div>
         <div className="mt-4"><AttendantBoard /></div>
+        <div className="mt-4">
+          <GarageMap prominent hidePlates highlight={foundStall} onSelectStall={setFoundStall} />
+        </div>
+        <div className="mt-4"><KeyReturn tone="light" prominent /></div>
+        <div className="mt-4"><BuyProof /></div>
         <div className="mt-4"><HostStand tickets={tickets} staff={staff} /></div>
-        <div className="mt-4"><GarageMap highlight={waiting[0]?.stall ?? nested[0]?.stall ?? "A-01"} /></div>
+        <div className="mt-4"><GarageMap hideSearch highlight={foundStall ?? waiting[0]?.stall ?? nested[0]?.stall ?? "A-01"} /></div>
 
         <section className="mt-4 rounded-2xl border border-line bg-white p-4">
           <h2 className="font-display text-xl">Tonight’s restack</h2>
@@ -255,10 +360,7 @@ function Manager() {
           </div>
         </section>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <KeyReturn tone="light" />
-          <ValetChat tone="light" />
-        </div>
+        <div className="mt-4"><ValetChat tone="light" /></div>
       </div>
     </div>
   );

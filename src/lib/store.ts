@@ -42,6 +42,7 @@ type LaneState = {
   postChat: (body: string) => Result;
   pingKeys: (unit: string) => Result;
   ackKeys: (id: number) => Result;
+  returnKeys: (unit: string) => Result;
   reset: () => void;
 };
 
@@ -60,6 +61,20 @@ function pushRide(
     at: Date.now(),
   };
   return { rideId: ping.id, ridePings: [ping, ...pings] };
+}
+
+function closeKeys(
+  pings: KeyPing[],
+  unit: string,
+  by: string,
+  how: NonNullable<KeyPing["resolvedHow"]>,
+) {
+  const resolvedAt = Date.now();
+  return pings.map((p) =>
+    p.unit === unit && (p.status === "sent" || p.status === "acked")
+      ? { ...p, status: "resolved" as const, resolvedAt, resolvedBy: by, resolvedHow: how }
+      : p,
+  );
 }
 
 function nextStatus(s: TicketStatus): TicketStatus | null {
@@ -251,6 +266,7 @@ export const useLane = create<LaneState>((set, get) => ({
         x.id === id ? { ...x, status: "cancelled" } : x,
       ),
       cred: [credEvent(t.unit, kind), ...s.cred],
+      keyPings: closeKeys(s.keyPings, t.unit, "You", "cancelled"),
       ...pushChat(s.chat, s.chatId, "Runway", `702 cancelled ${t.plate}.`),
     });
     return {
@@ -591,6 +607,11 @@ export const useLane = create<LaneState>((set, get) => ({
         : nxt === "staged"
           ? pushRide(s.ridePings, s.rideId, { ...t, toStall: toStall ?? t.toStall }, "ready")
           : { ridePings: s.ridePings, rideId: s.rideId };
+    const parkedIn = nxt === "staged" && plan.dir === "in";
+    const keyPings =
+      parkedIn || nxt === "released"
+        ? closeKeys(s.keyPings, t.unit, "You", parkedIn ? "parked" : "closed")
+        : s.keyPings;
     set({
       tickets: s.tickets.map((x) =>
         x.id === id
@@ -611,6 +632,7 @@ export const useLane = create<LaneState>((set, get) => ({
       ),
       pulls,
       cred,
+      keyPings,
       ...ride,
       ...pushChat(s.chat, s.chatId, "Runway", line),
     });
@@ -731,6 +753,19 @@ export const useLane = create<LaneState>((set, get) => ({
       ...pushChat(s.chat, s.chatId, "Runway", `APT ${p.unit} confirmed keys are coming down.`),
     });
     return { ok: true, message: "Told the garage. Nobody’s coming upstairs." };
+  },
+
+  returnKeys: (unit) => {
+    const open = get().keyPings.some(
+      (p) => p.unit === unit && (p.status === "sent" || p.status === "acked"),
+    );
+    if (!open) return { ok: false, message: "No keys request is open for that car." };
+    const s = get();
+    set({
+      keyPings: closeKeys(s.keyPings, unit, "You", "keys_returned"),
+      ...pushChat(s.chat, s.chatId, "Runway", `Keys returned for APT ${unit}.`),
+    });
+    return { ok: true, message: "Keys marked returned." };
   },
 
   reset: () => set({ ...fresh(), activeUnit: get().activeUnit }),

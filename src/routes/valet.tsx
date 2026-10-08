@@ -55,6 +55,14 @@ function Valet() {
   const liftCar = useLane((s) => s.lift);
   const takeCar = useLane((s) => s.takeCar);
   const cred = useLane((s) => s.cred);
+  const keyPings = useLane((s) => s.keyPings);
+  const returnKeys = useLane((s) => s.returnKeys);
+
+  function keysOpen(t: Ticket) {
+    return keyPings.some(
+      (p) => p.unit === t.unit && (p.status === "sent" || p.status === "acked"),
+    );
+  }
 
   const open = tickets.filter((t) => t.status !== "released" && t.status !== "cancelled");
   const mine = open.find((t) => t.valet === "You" && (t.status === "claimed" || t.status === "staged"));
@@ -134,6 +142,7 @@ function Valet() {
                   <GarageMap compact tone="dark" dest={destStall} highlight={destStall} onPick={(id) => { const r = takeCar(id); if (r.message) toast[r.ok ? "success" : "error"](r.message); }} />
                 </div>
                 {action ? <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>{action.label}</Button> : null}
+                {keysOpen(next) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(next.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
               </section>
             ) : next ? (
               <section className="mt-4 overflow-hidden rounded-2xl border border-gold/40 bg-navy-2">
@@ -150,6 +159,7 @@ function Valet() {
                     </p>
                   ) : null}
                   {action ? <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>{action.label}</Button> : null}
+                  {keysOpen(next) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(next.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
                   {locked && next.status === "claimed" && plan?.dir === "out" ? <Flip to="/resident" label="Resident was pinged" why="They see we’re bringing the car up." tone="dark" /> : null}
                   {next.status === "staged" && plan?.dir === "out" ? <Flip to="/resident" label="Open resident — car is ready" why="Timer is running on their phone." tone="dark" /> : null}
                 </div>
@@ -180,7 +190,10 @@ function Valet() {
                       const a = jobAction(t);
                       const mineJob = t.status === "open" || t.valet === "You";
                       return (
-                        <TicketCard key={t.id} ticket={t} tone="dark" action={!locked && mineJob ? a?.label : undefined} onAction={!locked && mineJob && a ? () => run(t) : undefined} />
+                        <div key={t.id}>
+                          <TicketCard ticket={t} tone="dark" action={!locked && mineJob ? a?.label : undefined} onAction={!locked && mineJob && a ? () => run(t) : undefined} />
+                          {keysOpen(t) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(t.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
+                        </div>
                       );
                     })}
                   </div>

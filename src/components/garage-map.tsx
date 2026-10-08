@@ -225,9 +225,10 @@ function Plate({
 }
 
 export function GarageMap({
-  tone = "light", highlight, dest, onPick, compact,
+  tone = "light", highlight, dest, onPick, compact, prominent, hideSearch, hidePlates, onSelectStall,
 }: {
   tone?: "light" | "dark"; highlight?: string; dest?: string; onPick?: (stallId: string) => void; compact?: boolean;
+  prominent?: boolean; hideSearch?: boolean; hidePlates?: boolean; onSelectStall?: (stallId: string) => void;
 }) {
   const tickets = useLane((s) => s.tickets);
   const stalls = occupancy(tickets);
@@ -236,16 +237,56 @@ export function GarageMap({
   const hitIds = new Set(hits.map((h) => h.stallId).filter(Boolean) as string[]);
   const [sel, setSel] = useState<string | null>(highlight ?? null);
   const dark = tone === "dark";
+  const onSelectRef = useMemo(() => ({ current: onSelectStall }), []);
+  onSelectRef.current = onSelectStall;
   useEffect(() => {
     if (!q.trim()) return;
     const first = searchDeck(q, occupancy(tickets), tickets).find((h) => h.stallId)?.stallId;
-    if (first) setSel(first);
-  }, [q, tickets]);
+    if (first) {
+      setSel(first);
+      onSelectRef.current?.(first);
+    }
+  }, [q, tickets, onSelectRef]);
   const stall = stalls.find((s) => s.id === sel) ?? stalls.find((s) => s.id === highlight);
-  function pick(id: string) { setSel(id); onPick?.(id); }
+  function pick(id: string) { setSel(id); onPick?.(id); onSelectStall?.(id); }
   return (
     <div className="space-y-4">
-      {compact ? null : (
+      {compact || hideSearch ? null : prominent ? (
+        <section className={cn("rounded-2xl border-2 border-gold bg-white p-4 text-navy", dark && "border-gold bg-navy-2 text-cream")}>
+          <p className="text-sm font-bold tracking-[0.16em] text-navy">FIND A CAR</p>
+          <label className="relative mt-3 block">
+            <Search className="pointer-events-none absolute top-5 left-4 size-5 text-navy" />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Make, model, plate or stall — e.g. Tesla, HST-4412, B-14"
+              autoComplete="off"
+              className="h-16 w-full rounded-full border-2 border-navy bg-cream pr-4 pl-12 text-xl text-navy placeholder:text-muted"
+            />
+          </label>
+          {q.trim() ? (
+            <ul className="mt-3 flex max-h-64 flex-col gap-2 overflow-y-auto">
+              {hits.length ? hits.map((h) => (
+                <li key={h.id}>
+                  <button type="button" onClick={() => h.stallId && pick(h.stallId)} className={cn("flex min-h-14 w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left", sel === h.stallId ? "bg-gold text-navy" : "bg-cream text-navy")}>
+                    <span className="min-w-0">
+                      <span className="block font-display text-xl">{h.where}</span>
+                      <span className="block text-sm">{h.car} · {h.plate}{h.unit ? ` · APT ${h.unit}` : ""}</span>
+                    </span>
+                  </button>
+                </li>
+              )) : <li className="px-1 py-2 text-sm text-muted">Nothing on the deck matches.</li>}
+            </ul>
+          ) : null}
+          <p className="mt-3 text-xs text-muted">Lessard A-101 · scroll 3B then 2B. Same packed plate as the field preview. Live tickets sit on A/B/C/P/R. Grey is the 24′ drive.</p>
+          {stall ? (
+            <p className="mt-1 text-xs text-muted">
+              {stall.plate ? `${stall.id} · ${[stall.car, stall.color].filter(Boolean).join(" · ")} · ${stall.plate}${stall.blockedBy ? ` · nested behind ${stall.blockedBy}` : ""}` : `${stall.id} open`}
+            </p>
+          ) : null}
+        </section>
+      ) : (
         <section className={cn("rounded-2xl border p-4", dark ? "border-navy-2 bg-navy-2/40 text-cream" : "border-line bg-white text-navy")}>
           <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">LESSARD A-101 · SCROLL 3B THEN 2B</p>
           <p className={cn("mt-1 text-xs", dark ? "text-cream/70" : "text-muted")}>
@@ -274,8 +315,8 @@ export function GarageMap({
           ) : null}
         </section>
       )}
-      <Plate level="3B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />
-      <Plate level="2B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />
+      {hidePlates ? null : <Plate level="3B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />}
+      {hidePlates ? null : <Plate level="2B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />}
     </div>
   );
 }

@@ -15,7 +15,7 @@ function contactOf(unit?: string) {
   return CONTACTS.find((c) => c.unit === u);
 }
 
-export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
+export function KeyReturn({ tone = "dark", prominent = false }: { tone?: "light" | "dark"; prominent?: boolean }) {
   const pingKeys = useLane((s) => s.pingKeys);
   const keyPings = useLane((s) => s.keyPings);
   const tickets = useLane((s) => s.tickets);
@@ -30,8 +30,10 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
   );
   const selected = contactOf(pick?.unit);
   const unit = selected?.unit;
+  const openPings = keyPings.filter((p) => p.status === "sent" || p.status === "acked");
+  const history = keyPings.filter((p) => p.status === "resolved");
   const waiting = unit
-    ? keyPings.find((p) => p.unit === unit && p.status === "sent")
+    ? openPings.find((p) => p.unit === unit)
     : undefined;
 
   function choose(h: CarHit) {
@@ -58,8 +60,9 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
       <label className="relative mt-3 block">
         <Search
           className={cn(
-            "pointer-events-none absolute top-3.5 left-3 size-4",
-            dark ? "text-cream/50" : "text-muted",
+            "pointer-events-none absolute left-3 size-4",
+            prominent ? "top-6 left-4 size-5 text-navy" : "top-3.5",
+            !prominent && (dark ? "text-cream/50" : "text-muted"),
           )}
         />
         <input
@@ -73,10 +76,15 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
           placeholder="Tesla, HST-4412, Pilot…"
           autoComplete="off"
           className={cn(
-            "w-full rounded-xl border py-3 pr-3 pl-10 text-sm",
-            dark
+            "w-full border",
+            prominent
+              ? "h-16 rounded-full border-2 border-navy bg-cream py-4 pr-4 pl-12 text-xl text-navy placeholder:text-muted"
+              : "rounded-xl py-3 pr-3 pl-10 text-sm",
+            !prominent && dark
               ? "border-navy bg-navy text-cream placeholder:text-cream/40"
-              : "border-line bg-cream text-navy placeholder:text-muted",
+              : !prominent
+                ? "border-line bg-cream text-navy placeholder:text-muted"
+                : "",
           )}
         />
       </label>
@@ -207,9 +215,9 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
         </Button>
       )}
 
-      {keyPings.length ? (
+      {openPings.length ? (
         <ol className="mt-4 space-y-2">
-          {keyPings.map((p) => (
+          {openPings.map((p) => (
             <li
               key={p.id}
               className={cn(
@@ -230,6 +238,32 @@ export function KeyReturn({ tone = "dark" }: { tone?: "light" | "dark" }) {
             </li>
           ))}
         </ol>
+      ) : null}
+
+      {history.length ? (
+        <div className="mt-4">
+          <p className="text-[10px] font-bold tracking-[0.16em] text-gold">KEYS HISTORY</p>
+          <ol className="mt-2 space-y-2">
+            {history.map((p) => (
+              <li key={p.id} className={cn("rounded-xl px-3 py-2 text-sm", dark ? "bg-navy" : "bg-cream")}>
+                <p className="font-semibold">APT {p.unit} · {p.name}</p>
+                <p className={cn("text-xs", dark ? "text-cream/60" : "text-muted")}>
+                  {p.resolvedHow === "keys_returned"
+                    ? "Keys returned"
+                    : p.resolvedHow === "parked"
+                      ? "Parked"
+                      : p.resolvedHow === "cancelled"
+                        ? "Request cancelled"
+                        : "Ticket closed"}
+                  {p.resolvedBy ? ` · ${p.resolvedBy}` : ""}
+                  {p.resolvedAt
+                    ? ` · ${new Date(p.resolvedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                    : ""}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
       ) : null}
     </section>
   );

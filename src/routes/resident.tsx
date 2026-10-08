@@ -152,22 +152,6 @@ function Resident() {
           </section>
         ) : null}
 
-        {!carOut ? (
-          <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
-            <span className="font-display text-lg text-navy">Let us know when you’ll be back</span>
-            <select
-              value={backOptions.includes(back) ? back : ""}
-              onChange={(e) => setBack(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
-            >
-              <option value="">Pick a time</option>
-              {backOptions.map((option) => (
-                <option key={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-
         <CurbPager tickets={tickets} staff={staff} mine={live?.type === "now" ? live : undefined} nested>
           {!live || live.type === "arrival" ? (
             !confirm ? (

@@ -64,6 +64,15 @@
   animation: dest-blink 1s ease-in-out infinite;
 }
 
+@keyframes valet-work {
+  0%, 100% { fill: #9b1c1c; }
+  50% { fill: #f4b4b4; }
+}
+
+.valet-working {
+  animation: valet-work 1s ease-in-out infinite;
+}
+
 @keyframes stall-hit {
   0%, 100% { box-shadow: 0 0 0 2px var(--color-gold); }
   50% { box-shadow: 0 0 0 4px var(--color-gold); }

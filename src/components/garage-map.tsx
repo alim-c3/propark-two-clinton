@@ -136,12 +136,24 @@ function sampleCar(id: string) {
   return { taken: n % 5 < 2, car, plate };
 }
 
+function workingOn(tickets: Ticket[]) {
+  const out: Record<string, { valet: string; car: string; plate: string }> = {};
+  for (const t of tickets) {
+    if (!t.valet || (t.status !== "claimed" && t.status !== "staged")) continue;
+    if (t.type !== "arrival" && t.status === "staged") continue;
+    const stall = t.type === "arrival" ? t.toStall ?? t.stall : t.stall;
+    if (!stall || stall === "curb") continue;
+    out[stall] = { valet: t.valet, car: t.car, plate: t.plate };
+  }
+  return out;
+}
+
 function fillFor(occupied: boolean) {
   return occupied ? "#152033" : "#1f8a4c";
 }
 
 function Plate({
-  level, stalls, sel, highlight, dest, hitIds, onPick, dark,
+  level, stalls, sel, highlight, dest, hitIds, onPick, dark, working,
 }: {
   level: "3B" | "2B";
   stalls: Stall[];
@@ -151,6 +163,7 @@ function Plate({
   hitIds: Set<string>;
   onPick: (id: string) => void;
   dark: boolean;
+  working: Record<string, { valet: string; car: string; plate: string }>;
 }) {
   const three = level === "3B";
   const slab = dark ? "#2a3340" : "#e2dac8";
@@ -224,25 +237,28 @@ function Plate({
           {layout.map((p) => {
             const s = p.live ? byId(p.id) : undefined;
             const sample = sampleCar(p.id);
-            const occupied = s ? Boolean(s.plate) : sample.taken;
+            const job = working[p.id];
+            const occupied = job ? true : s ? Boolean(s.plate) : sample.taken;
             const isDest = dest === p.id;
             const active = sel === p.id || highlight === p.id || isDest || hitIds.has(p.id);
-            const fill = isDest ? "#16a34a" : fillFor(occupied);
-            const tipText = occupied
-              ? s?.plate
-                ? `${s.car ?? "Vehicle"} · ${s.plate}`
-                : `${sample.car} · ${sample.plate}`
-              : `Open · ${sample.car}`;
+            const fill = job ? "#9b1c1c" : isDest ? "#16a34a" : fillFor(occupied);
+            const tipText = job
+              ? `${job.valet} · ${job.car} · ${job.plate}`
+              : occupied
+                ? s?.plate
+                  ? `${s.car ?? "Vehicle"} · ${s.plate}`
+                  : `${sample.car} · ${sample.plate}`
+                : "";
             return (
               <g
                 key={`${level}-${p.id}-${p.x}-${p.y}`}
                 onClick={() => p.live && onPick(p.id)}
-                onMouseEnter={(event) => showTip(event, tipText)}
-                onMouseMove={(event) => showTip(event, tipText)}
+                onMouseEnter={(event) => tipText && showTip(event, tipText)}
+                onMouseMove={(event) => tipText && showTip(event, tipText)}
                 onMouseLeave={() => setTip(null)}
                 className="cursor-pointer"
               >
-                <rect className={isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
+                <rect className={job ? "valet-working" : isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
                 <line x1={p.x + 8} y1={p.y + 8} x2={p.x + 8 + p.w} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 <line x1={p.x + 8 + p.w} y1={p.y + 8} x2={p.x + 8} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 {p.live ? (
@@ -277,6 +293,7 @@ export function GarageMap({
 }) {
   const tickets = useLane((s) => s.tickets);
   const stalls = occupancy(tickets);
+  const working = useMemo(() => workingOn(tickets), [tickets]);
   const [q, setQ] = useState("");
   const hits = searchDeck(q, stalls, tickets);
   const hitIds = new Set(hits.map((h) => h.stallId).filter(Boolean) as string[]);
@@ -360,8 +377,8 @@ export function GarageMap({
           ) : null}
         </section>
       )}
-      {hidePlates ? null : <Plate level="3B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />}
-      {hidePlates ? null : <Plate level="2B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} />}
+      {hidePlates ? null : <Plate level="3B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} working={working} />}
+      {hidePlates ? null : <Plate level="2B" stalls={stalls} sel={sel} highlight={highlight} dest={dest} hitIds={hitIds} onPick={pick} dark={dark} working={working} />}
     </div>
   );
 }

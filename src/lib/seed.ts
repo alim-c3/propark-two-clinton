@@ -122,6 +122,22 @@ export const INITIAL_TICKETS: Ticket[] = [
     id: 103, type: "arrival", unit: "702", name: "Priya’s sister", car: "CR-V", color: "Silver", plate: "G-441", stall: "curb", toStall: "R-02", due: "4:30 pm", status: "open",
     note: "Guest after Toast Coffee · ~3 hours", requestedAt: T0 - 50 * 60000,
   },
+  {
+    id: 104, type: "now", unit: "414", name: "Elena Rossi", car: "Audi Q5", color: "Black", plate: "Q5-4419", stall: "A-04", due: "Now", status: "open",
+    note: "School pickup", requestedAt: T0 - 9 * 60000,
+  },
+  {
+    id: 105, type: "now", unit: "210", name: "Alvarez", car: "Honda Pilot", color: "White", plate: "HND-0210", stall: "B-11", due: "Now", status: "open",
+    note: "Appointment on Division", requestedAt: T0 - 6 * 60000,
+  },
+  {
+    id: 106, type: "now", unit: "PH4", name: "Jordan Blake", car: "Macan", color: "Gray", plate: "GT-55", stall: "C-05", due: "Now", status: "staged", valet: "Ana",
+    note: "Waiting at the Clinton Place curb", requestedAt: T0 - 14 * 60000, claimedAt: T0 - 8 * 60000, stagedAt: T0 - 3 * 60000,
+  },
+  {
+    id: 107, type: "now", unit: "1512", name: "Mei Chen", car: "Lexus RX", color: "Graphite", plate: "NYC-8821", stall: "B-15", due: "Now", status: "claimed", valet: "Derrick",
+    note: "Drive into the city", requestedAt: T0 - 3 * 60000, claimedAt: T0 - 60 * 1000,
+  },
 ];
 
 export const INITIAL_CHAT: ChatMsg[] = [

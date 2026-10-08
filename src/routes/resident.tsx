@@ -14,7 +14,7 @@ import { CONTACTS, RESIDENT_CHOICES, residentOf } from "@/lib/seed";
 import { scoreMap } from "@/lib/cred";
 import { useLane } from "@/lib/store";
 import { placeLine, placeOf } from "@/lib/queue";
-import type { Ticket, TicketType } from "@/lib/types";
+import type { Ticket } from "@/lib/types";
 import { localInputValue, cn, useNow } from "@/lib/utils";
 
 export const Route = createFileRoute("/resident")({
@@ -39,6 +39,8 @@ function Resident() {
   const requestNow = useLane((s) => s.requestNow);
   const schedule = useLane((s) => s.schedule);
   const cancel = useLane((s) => s.cancel);
+  const pushBack = useLane((s) => s.pushBack);
+  const expectBack = useLane((s) => s.expectBack);
   const keyPings = useLane((s) => s.keyPings);
   const ackKeys = useLane((s) => s.ackKeys);
   const cred = useLane((s) => s.cred);
@@ -62,13 +64,14 @@ function Resident() {
   const ping8 = live?.status === "staged" && readyMin >= 8;
 
   const [confirm, setConfirm] = useState(false);
-  const [sheet, setSheet] = useState<TicketType | null>(null);
   const [when, setWhen] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() + 45);
     return localInputValue(d);
   });
   const [note, setNote] = useState("");
+  const [back, setBack] = useState("");
+  const [pushMin, setPushMin] = useState("15");
 
   const onFloor = Object.values(staff).filter(Boolean).length;
   const scores = scoreMap(cred, CONTACTS.map((c) => c.unit));
@@ -88,7 +91,7 @@ function Resident() {
     : `Your ${me.car} is downstairs in ${me.stall}${me.charge ? `, ${me.charge}%` : ""}.`;
 
   function go() {
-    const r = requestNow();
+    const r = requestNow(back ? `Expected back: ${back}.` : undefined);
     toast[r.ok ? "success" : "error"](r.message);
     if (r.ok) {
       setConfirm(false);
@@ -108,6 +111,34 @@ function Resident() {
             </button>
           ))}
         </div>
+
+        <section className="mt-4 rounded-2xl border-2 border-gold bg-white px-4 py-5">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-gold-2">YOUR SPOT</p>
+          <p className="mt-1 font-display text-6xl leading-none text-navy">{me.stall}</p>
+          <p className="mt-3 text-base text-navy">{me.car} · {me.color} · {me.plate}</p>
+          <p className="mt-1 text-sm text-muted">
+            P2{me.blockedBy ? ` · nested behind ${me.blockedBy}` : ""}
+          </p>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-line bg-white px-4 py-4">
+          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">IN PROGRESS ON THE FLOOR</p>
+          <ul className="mt-3 space-y-2">
+            {tickets
+              .filter((t) => t.unit !== me.unit && t.type === "now" && isLive(t))
+              .map((t) => (
+                <li key={t.id} className="flex items-baseline justify-between gap-3 border-t border-line pt-2 first:border-0 first:pt-0">
+                  <p className="text-sm text-navy">
+                    <span className="font-semibold">{t.stall}</span> · {t.car} · Apt {t.unit}
+                  </p>
+                  <p className="shrink-0 text-xs font-semibold text-gold-2">
+                    {t.status === "staged" ? "At curb" : t.status === "claimed" ? "Pulling" : "Waiting"}
+                  </p>
+                </li>
+              ))}
+          </ul>
+        </section>
+
         <p className="mt-4 text-[10px] font-bold tracking-[0.18em] text-gold-2">GOOD EVENING · APT {me.unit} · FLOOR {me.floor}</p>
         <h1 className="mt-2 font-display text-3xl text-navy">{h1}</h1>
         <p className="mt-2 text-sm text-muted">{cap}</p>
@@ -147,6 +178,67 @@ function Resident() {
         </CurbPager>
 
         {live?.type === "now" && live.status === "open" ? (
+          <div className="mt-3 space-y-2">
+            <Button variant="danger" size="block" onClick={() => {
+              if (!window.confirm("Cancel this pickup?")) return;
+              const r = cancel(live.id);
+              toast[r.ok ? "success" : "error"](r.message);
+            }}>Cancel this pickup</Button>
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <label className="block text-[10px] font-bold tracking-[0.16em] text-gold-2">PUSH BACK PICKUP</label>
+              <select
+                value={pushMin}
+                onChange={(e) => setPushMin(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
+              >
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+              <Button className="mt-3" variant="navy" size="block" onClick={() => {
+                const r = pushBack(live.id, Number(pushMin));
+                toast[r.ok ? "success" : "error"](r.message);
+              }}>Push it back</Button>
+            </div>
+          </div>
+        ) : null}
+
+        <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
+          <span className="text-[10px] font-bold tracking-[0.16em] text-gold-2">EXPECTED BACK</span>
+          <select
+            value={back}
+            onChange={(e) => {
+              const value = e.target.value;
+              setBack(value);
+              if (!value) return;
+              const r = expectBack(value);
+              if (r.ok) toast.success(r.message);
+            }}
+            className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
+          >
+            <option value="">When will you be back?</option>
+            <option>30 minutes</option>
+            <option>1 hour</option>
+            <option>2 hours</option>
+            <option>This evening</option>
+            <option>Tomorrow morning</option>
+          </select>
+        </label>
+
+        <div className="mt-4 rounded-2xl border-2 border-navy bg-white p-4">
+          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">PICK A TIME</p>
+          <p className="mt-1 font-display text-xl text-navy">When should we have it ready?</p>
+          <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy" />
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Child seat, groceries…" className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
+          <Button className="mt-3" variant="gold" size="block" onClick={() => {
+            const r = schedule("scheduled", when.replace("T", " "), note);
+            toast[r.ok ? "success" : "error"](r.message);
+            if (r.ok) setNote("");
+          }}>Save this time</Button>
+        </div>
+
+        {live?.type === "now" && live.status === "open" ? (
           <Flip to="/valet" label={`Open valet — they have your ${me.car}`} why="Clock in. One job until it’s ready." />
         ) : null}
 
@@ -176,14 +268,6 @@ function Resident() {
           </section>
         ) : null}
 
-        {live && live.type === "now" && live.status === "open" ? (
-          <Button className="mt-4" variant="danger" size="block" onClick={() => {
-            if (!window.confirm("Cancel this pickup?")) return;
-            const r = cancel(live.id);
-            toast[r.ok ? "success" : "error"](r.message);
-          }}>Cancel this pickup</Button>
-        ) : null}
-
         <p className="mt-4 text-sm text-muted">
           {me.car} · {me.color} · {me.plate}
           {live?.status === "staged" ? " · at Clinton Place curb" : ` · ${me.stall}`}
@@ -198,28 +282,10 @@ function Resident() {
               toast[r.ok ? "success" : "error"](r.message);
             }}>Thursday 7:05</Button>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="ghost" size="block" onClick={() => setSheet("scheduled")}>Pick a time</Button>
-            <Button variant="ghost" size="block" onClick={() => setSheet("arrival")}>I’m on my way in</Button>
-          </div>
-          {sheet ? (
-            <form className="border-t border-line pt-4" onSubmit={(e) => {
-              e.preventDefault();
-              const r = schedule(sheet, when.replace("T", " "), note);
-              toast[r.ok ? "success" : "error"](r.message);
-              if (r.ok) { setSheet(null); setNote(""); }
-            }}>
-              <p className="font-display text-lg">{sheet === "arrival" ? "We’ll hold a curb stall." : "When should we have it ready?"}</p>
-              <label className="mt-3 block text-xs font-bold">When</label>
-              <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
-              <label className="block text-xs font-bold">Anything we should know?</label>
-              <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Child seat, groceries…" className="mt-1 mb-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
-              <div className="flex gap-2">
-                <Button type="submit" variant="gold">Save this for me</Button>
-                <Button type="button" variant="ghost" onClick={() => setSheet(null)}>Never mind</Button>
-              </div>
-            </form>
-          ) : null}
+          <Button variant="ghost" size="block" onClick={() => {
+            const r = schedule("arrival", when.replace("T", " "), note || "On the way in");
+            toast[r.ok ? "success" : "error"](r.message);
+          }}>I’m on my way in</Button>
           <h2 className="font-display text-xl">Your requests</h2>
           <div className="flex flex-col gap-3">
             {mine.filter((t) => t.id !== live?.id && t.status !== "cancelled" && t.status !== "released").map((t) => (

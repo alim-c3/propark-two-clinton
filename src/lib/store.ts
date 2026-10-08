@@ -29,6 +29,8 @@ type LaneState = {
   requestNow: (note?: string) => Result;
   schedule: (kind: TicketType, due: string, note: string) => Result;
   cancel: (id: number) => Result;
+  pushBack: (id: number, minutes: number) => Result;
+  expectBack: (label: string) => Result;
   clock: (on: boolean) => Result;
   setBreak: (on: boolean) => Result;
   unnest: (id: number) => Result;
@@ -258,6 +260,47 @@ export const useLane = create<LaneState>((set, get) => ({
           ? "Cancelled. Street cred took a hit — next time cancel only if you mean it."
           : "Cancelled. Thanks for the heads-up — Street cred noticed.",
     };
+  },
+
+  pushBack: (id, minutes) => {
+    const t = get().tickets.find((x) => x.id === id);
+    if (!t || t.type !== "now" || t.status !== "open") {
+      return { ok: false, message: "You can only push back a pickup that hasn’t started." };
+    }
+    const due = minutes >= 60 ? "In 1 hour" : `In ${minutes} min`;
+    const s = get();
+    set({
+      tickets: s.tickets.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              due,
+              requestedAt: Date.now() + minutes * 60000,
+              note: `Pushed back ${due.toLowerCase()}.`,
+            }
+          : x,
+      ),
+      ...pushChat(s.chat, s.chatId, "Runway", `${t.unit} pushed ${t.plate} back. ${due}.`),
+    });
+    return { ok: true, message: `Pickup pushed back. ${due}.` };
+  },
+
+  expectBack: (label) => {
+    const me = residentOf(get().activeUnit);
+    const t = get().tickets.find(
+      (x) =>
+        x.unit === me.unit &&
+        x.type === "now" &&
+        (x.status === "open" || x.status === "claimed"),
+    );
+    if (!t) return { ok: false, message: "Ask for the car first, then tell us when you’re back." };
+    const s = get();
+    set({
+      tickets: s.tickets.map((x) =>
+        x.id === t.id ? { ...x, note: `Expected back: ${label}.` } : x,
+      ),
+    });
+    return { ok: true, message: `Desk has you back in ${label}.` };
   },
 
   clock: (on) => {

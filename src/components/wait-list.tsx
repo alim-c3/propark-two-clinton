@@ -47,28 +47,15 @@ function stallHint(id: string) {
 
 function StallWhere({
   stall,
-  nested,
-  pulling,
+  queue,
 }: {
   stall: string;
-  nested?: string;
-  pulling?: boolean;
+  queue: string;
 }) {
   return (
     <div className="mt-3 rounded-xl bg-cream px-3 py-3 text-navy">
-      <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-        {pulling ? "THEY’RE PULLING IT FROM" : "YOUR STALL"}
-      </p>
-      <p className="font-display text-3xl">{stall}</p>
-      <p className="mt-1 text-sm text-muted">
-        {stallHint(stall)}.
-        {pulling
-          ? " Stay upstairs — we’ll text when it’s at the curb."
-          : " Grab a phone or a bag from the car anytime."}
-        {nested && !pulling
-          ? ` Nested behind ${nested} — ask the desk if you can’t reach it.`
-          : ""}
-      </p>
+      <p className="font-display text-3xl sm:text-4xl">{stall}</p>
+      <p className="mt-1 text-sm">{queue}</p>
     </div>
   );
 }
@@ -201,16 +188,18 @@ export function CurbPager({
               ? "About a minute"
               : `${spot.stillMin} min`}
         </p>
-        <p className="mt-1 text-sm text-cream/70">
-          {pulling
-            ? "We’ll ping you when it’s ready on the runway."
-            : `${placeLine(spot.place)}${
-                spot.place > 1
-                  ? ` · ${spot.place - 1} car${spot.place - 1 === 1 ? "" : "s"} ahead`
-                  : ""
-              }`}
-        </p>
-        <StallWhere stall={stallId} nested={nest} pulling={pulling} />
+        <StallWhere
+          stall={stallId}
+          queue={
+            pulling
+              ? "We’ll ping you when it’s ready on the runway."
+              : `${placeLine(spot.place)}${
+                  spot.place > 1
+                    ? ` · ${spot.place - 1} car${spot.place - 1 === 1 ? "" : "s"} ahead`
+                    : ""
+                }`
+          }
+        />
       </section>
     );
   }

@@ -6,7 +6,7 @@ import { Mail, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Chrome } from "@/components/chrome";
-import { DemoBar, Flip } from "@/components/demo-bar";
+import { DemoBar } from "@/components/demo-bar";
 import { TicketCard } from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { CurbPager } from "@/components/wait-list";
@@ -24,6 +24,25 @@ export const Route = createFileRoute("/resident")({
 
 function isLive(t: Ticket) {
   return t.status === "open" || t.status === "claimed" || t.status === "staged";
+}
+
+function returnWindows(now: number) {
+  const start = new Date(now).getHours();
+  const windows: string[] = [];
+  for (let hour = start; hour < 24; hour++) {
+    const from = hour % 12 === 0 ? 12 : hour % 12;
+    const toHour = (hour + 1) % 24;
+    const to = toHour % 12 === 0 ? 12 : toHour % 12;
+    const fromSuffix = hour < 12 ? "am" : "pm";
+    const toSuffix = toHour < 12 ? "am" : "pm";
+    windows.push(
+      fromSuffix === toSuffix
+        ? `${from} to ${to} ${toSuffix}`
+        : `${from} ${fromSuffix} to ${to} ${toSuffix}`,
+    );
+  }
+  windows.push("Tomorrow", "More than 1 day");
+  return windows;
 }
 
 function fmtReady(ms: number) {
@@ -64,6 +83,8 @@ function Resident() {
   const ping8 = live?.status === "staged" && readyMin >= 8;
 
   const [confirm, setConfirm] = useState(false);
+  const [pullNote, setPullNote] = useState("");
+  const [pushLine, setPushLine] = useState("");
   const [when, setWhen] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() + 45);
@@ -71,7 +92,7 @@ function Resident() {
   });
   const [note, setNote] = useState("");
   const [back, setBack] = useState("");
-  const [pushMin, setPushMin] = useState("15");
+  const [pushMin, setPushMin] = useState("");
 
   const onFloor = Object.values(staff).filter(Boolean).length;
   const scores = scoreMap(cred, CONTACTS.map((c) => c.unit));
@@ -91,13 +112,18 @@ function Resident() {
     : `Your ${me.car} is downstairs in ${me.stall}${me.charge ? `, ${me.charge}%` : ""}.`;
 
   function go() {
-    const r = requestNow(back ? `Expected back: ${back}.` : undefined);
+    const note = pullNote.trim();
+    const r = requestNow(note || undefined);
     toast[r.ok ? "success" : "error"](r.message);
     if (r.ok) {
       setConfirm(false);
+      setPullNote("");
       window.scrollTo({ top: 0, behavior: "auto" });
     }
   }
+
+  const carOut = live?.type === "now" && isLive(live);
+  const backOptions = returnWindows(now);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -111,33 +137,6 @@ function Resident() {
             </button>
           ))}
         </div>
-
-        <section className="mt-4 rounded-2xl border-2 border-gold bg-white px-4 py-5">
-          <p className="text-[10px] font-bold tracking-[0.18em] text-gold-2">YOUR SPOT</p>
-          <p className="mt-1 font-display text-6xl leading-none text-navy">{me.stall}</p>
-          <p className="mt-3 text-base text-navy">{me.car} · {me.color} · {me.plate}</p>
-          <p className="mt-1 text-sm text-muted">
-            P2{me.blockedBy ? ` · nested behind ${me.blockedBy}` : ""}
-          </p>
-        </section>
-
-        <section className="mt-4 rounded-2xl border border-line bg-white px-4 py-4">
-          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">IN PROGRESS ON THE FLOOR</p>
-          <ul className="mt-3 space-y-2">
-            {tickets
-              .filter((t) => t.unit !== me.unit && t.type === "now" && isLive(t))
-              .map((t) => (
-                <li key={t.id} className="flex items-baseline justify-between gap-3 border-t border-line pt-2 first:border-0 first:pt-0">
-                  <p className="text-sm text-navy">
-                    <span className="font-semibold">{t.stall}</span> · {t.car} · Apt {t.unit}
-                  </p>
-                  <p className="shrink-0 text-xs font-semibold text-gold-2">
-                    {t.status === "staged" ? "At curb" : t.status === "claimed" ? "Pulling" : "Waiting"}
-                  </p>
-                </li>
-              ))}
-          </ul>
-        </section>
 
         <p className="mt-4 text-[10px] font-bold tracking-[0.18em] text-gold-2">GOOD EVENING · APT {me.unit} · FLOOR {me.floor}</p>
         <h1 className="mt-2 font-display text-3xl text-navy">{h1}</h1>
@@ -168,9 +167,15 @@ function Resident() {
             ) : (
               <div className="rounded-xl border border-gold bg-cream p-4">
                 <p className="font-display text-lg text-navy">Ready to take off?</p>
+                <input
+                  value={pullNote}
+                  onChange={(e) => setPullNote(e.target.value)}
+                  placeholder="Child seat, groceries…"
+                  className="mt-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm"
+                />
                 <div className="mt-3 flex flex-col gap-2">
                   <Button variant="gold" size="block" onClick={go}>Yes — let’s take off</Button>
-                  <Button variant="ghost" size="block" onClick={() => setConfirm(false)}>Keep it charging</Button>
+                  <Button variant="ghost" size="block" onClick={() => { setConfirm(false); setPullNote(""); }}>Cancel car request</Button>
                 </div>
               </div>
             )
@@ -179,7 +184,11 @@ function Resident() {
 
         {live?.type === "now" && live.status === "open" ? (
           <div className="mt-3 space-y-2">
-            <Button variant="danger" size="block" onClick={() => {
+            <Button
+              variant="danger"
+              size="block"
+              className="!bg-danger !text-cream hover:!bg-danger hover:!text-cream focus:!bg-danger focus:!text-cream active:!bg-danger active:!text-cream disabled:!bg-danger disabled:!text-cream disabled:!opacity-100"
+              onClick={() => {
               if (!window.confirm("Cancel this pickup?")) return;
               const r = cancel(live.id);
               toast[r.ok ? "success" : "error"](r.message);
@@ -188,47 +197,58 @@ function Resident() {
               <label className="block text-[10px] font-bold tracking-[0.16em] text-gold-2">PUSH BACK PICKUP</label>
               <select
                 value={pushMin}
-                onChange={(e) => setPushMin(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPushMin(value);
+                  if (!value) {
+                    setPushLine("");
+                    return;
+                  }
+                  const minutes = Number(value);
+                  const r = pushBack(live.id, minutes);
+                  toast[r.ok ? "success" : "error"](r.message);
+                  setPushLine(
+                    r.ok
+                      ? `You’ll be placed in the queue so your car is ready in ${minutes} min.`
+                      : "",
+                  );
+                }}
                 className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
               >
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">1 hour</option>
+                <option value="">Choose how long</option>
+                {[5, 10, 15, 20, 30, 45, 60, 90].map((minutes) => (
+                  <option key={minutes} value={minutes}>{minutes} minutes</option>
+                ))}
               </select>
-              <Button className="mt-3" variant="navy" size="block" onClick={() => {
-                const r = pushBack(live.id, Number(pushMin));
-                toast[r.ok ? "success" : "error"](r.message);
-              }}>Push it back</Button>
+              {pushLine ? <p className="mt-2 text-sm text-navy">{pushLine}</p> : null}
             </div>
           </div>
         ) : null}
 
-        <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
-          <span className="text-[10px] font-bold tracking-[0.16em] text-gold-2">EXPECTED BACK</span>
-          <select
-            value={back}
-            onChange={(e) => {
-              const value = e.target.value;
-              setBack(value);
-              if (!value) return;
-              const r = expectBack(value);
-              if (r.ok) toast.success(r.message);
-            }}
-            className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
-          >
-            <option value="">When will you be back?</option>
-            <option>30 minutes</option>
-            <option>1 hour</option>
-            <option>2 hours</option>
-            <option>This evening</option>
-            <option>Tomorrow morning</option>
-          </select>
-        </label>
+        {carOut ? (
+          <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
+            <span className="font-display text-lg text-navy">Let us know when you’ll be back (optional)</span>
+            <select
+              value={backOptions.includes(back) ? back : ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setBack(value);
+                if (!value) return;
+                const r = expectBack(value);
+                if (r.ok) toast.success(r.message);
+              }}
+              className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
+            >
+              <option value="">Skip for now</option>
+              {backOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <div className="mt-4 rounded-2xl border-2 border-navy bg-white p-4">
-          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">PICK A TIME</p>
-          <p className="mt-1 font-display text-xl text-navy">When should we have it ready?</p>
+          <p className="font-display text-xl text-navy">Schedule a car request</p>
           <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy" />
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Child seat, groceries…" className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
           <Button className="mt-3" variant="gold" size="block" onClick={() => {
@@ -237,10 +257,6 @@ function Resident() {
             if (r.ok) setNote("");
           }}>Save this time</Button>
         </div>
-
-        {live?.type === "now" && live.status === "open" ? (
-          <Flip to="/valet" label={`Open valet — they have your ${me.car}`} why="Clock in. One job until it’s ready." />
-        ) : null}
 
         {ride && live?.status !== "claimed" && live?.status !== "staged" ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">

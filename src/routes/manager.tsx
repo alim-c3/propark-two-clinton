@@ -204,11 +204,10 @@ function Manager() {
   const restack = useLane((s) => s.restack);
   const acceptRestack = useLane((s) => s.acceptRestack);
   const dismissRestack = useLane((s) => s.dismissRestack);
-  const postChat = useLane((s) => s.postChat);
-  const notifyResident = useLane((s) => s.notifyResident);
+  const insightCalls = useLane((s) => s.insightCalls);
+  const decideInsightCall = useLane((s) => s.decideInsight);
   const now = useNow();
   const [foundStall, setFoundStall] = useState<string | undefined>();
-  const [calls, setCalls] = useState<Record<string, "approved" | "rejected">>({});
 
   const live = tickets.filter((t) => t.status !== "cancelled" && t.status !== "released");
   const onFloor = Object.values(staff).filter(Boolean).length;
@@ -263,9 +262,12 @@ function Manager() {
       : decision === "approved"
         ? `Pro-fit approved: ${row.unit} · ${row.car}. ${row.note}.`
         : `Pro-fit rejected: ignore “${row.note}” for ${row.unit} · ${row.car}.`;
-    const result = resident ? notifyResident(unitLabel.split(" ")[0], body) : postChat(body);
+    const result = decideInsightCall(
+      unitLabel,
+      decision,
+      body ? { to: resident ? "resident" : "valet", unit: unitLabel.split(" ")[0], body } : undefined,
+    );
     toast[result.ok ? "success" : "error"](result.message);
-    if (result.ok) setCalls((current) => ({ ...current, [unitLabel]: decision }));
   }
 
   const stats: Array<{ k: string; v: string; s: string; tone?: "ok" | "danger" }> = [
@@ -377,8 +379,7 @@ function Manager() {
           <h2 className="font-display text-2xl">Pro-fit Engine Insights</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FINGERPRINTS.map((r) => {
-              const resident = r.unit.startsWith("702");
-              const decision = calls[r.unit];
+              const decision = insightCalls[r.unit];
               return (
                 <article key={r.unit} className="rounded-xl border border-line p-4">
                   <p className="font-semibold">{r.unit}</p>
@@ -391,7 +392,8 @@ function Manager() {
                   <p className="mt-2 text-sm text-navy">{r.note}</p>
                   {decision ? (
                     <p className="mt-3 text-sm font-semibold text-ok">
-                      {decision === "approved" ? "Approved" : "Rejected"} · sent to the {resident ? "resident" : "valets"}
+                      {decision.decision === "approved" ? "Approved" : "Rejected"}
+                      {decision.sentTo ? ` · sent to the ${decision.sentTo === "resident" ? "resident" : "valets"}` : " · saved"}
                     </p>
                   ) : (
                     <div className="mt-3 flex gap-2">

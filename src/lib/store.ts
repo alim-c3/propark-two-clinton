@@ -22,6 +22,7 @@ type LaneState = {
   rideId: number;
   deskNotes: DeskNote[];
   noteId: number;
+  insightCalls: Record<string, { decision: "approved" | "rejected"; sentTo?: "resident" | "valet" }>;
   punches: Punch[];
   pulls: ShiftPull[];
   onBreak: boolean;
@@ -46,6 +47,11 @@ type LaneState = {
   ackKeys: (id: number) => Result;
   returnKeys: (unit: string) => Result;
   notifyResident: (unit: string, body: string) => Result;
+  decideInsight: (
+    id: string,
+    decision: "approved" | "rejected",
+    message?: { to: "resident" | "valet"; unit?: string; body: string },
+  ) => Result;
   reset: () => void;
 };
 
@@ -114,6 +120,7 @@ function fresh(): Pick<
   | "rideId"
   | "deskNotes"
   | "noteId"
+  | "insightCalls"
   | "punches"
   | "pulls"
   | "onBreak"
@@ -132,6 +139,7 @@ function fresh(): Pick<
     rideId: 1,
     deskNotes: [],
     noteId: 1,
+    insightCalls: {},
     punches: INITIAL_PUNCHES.map((p) => ({ ...p })),
     pulls: INITIAL_PULLS.map((p) => ({ ...p })),
     onBreak: false,
@@ -784,6 +792,50 @@ export const useLane = create<LaneState>((set, get) => ({
     const note: DeskNote = { id: s.noteId + 1, unit, body: text, at: Date.now() };
     set({ noteId: note.id, deskNotes: [note, ...s.deskNotes] });
     return { ok: true, message: `Texted ${c.name}.` };
+  },
+
+  decideInsight: (id, decision, message) => {
+    const s = get();
+    const remembered = {
+      insightCalls: {
+        ...s.insightCalls,
+        [id]: {
+          decision,
+          ...(message?.body.trim()
+            ? { sentTo: message.to }
+            : {}),
+        },
+      },
+    };
+    if (!message?.body.trim()) {
+      set(remembered);
+      return { ok: true, message: decision === "approved" ? "Approved and saved." : "Rejected and saved." };
+    }
+    if (message.to === "resident") {
+      const unit = message.unit ?? "";
+      const c = CONTACTS.find((x) => x.unit === unit);
+      if (!c) {
+        set({
+          insightCalls: {
+            ...s.insightCalls,
+            [id]: { decision },
+          },
+        });
+        return { ok: true, message: "Saved. No resident to text." };
+      }
+      const note: DeskNote = { id: s.noteId + 1, unit, body: message.body.trim(), at: Date.now() };
+      set({
+        ...remembered,
+        noteId: note.id,
+        deskNotes: [note, ...s.deskNotes],
+      });
+      return { ok: true, message: `Texted ${c.name}.` };
+    }
+    set({
+      ...remembered,
+      ...pushChat(s.chat, s.chatId, "Runway", message.body.trim()),
+    });
+    return { ok: true, message: "Sent to the floor." };
   },
 
   reset: () => set({ ...fresh(), activeUnit: get().activeUnit }),

@@ -61,6 +61,7 @@ function Resident() {
   const keyPings = useLane((s) => s.keyPings);
   const ackKeys = useLane((s) => s.ackKeys);
   const ridePings = useLane((s) => s.ridePings);
+  const deskNotes = useLane((s) => s.deskNotes);
   const activeUnit = useLane((s) => s.activeUnit);
   const setActiveUnit = useLane((s) => s.setActiveUnit);
   const now = useNow();
@@ -73,6 +74,7 @@ function Resident() {
   const standing = mine.find((t) => t.type === "scheduled" && t.status === "open" && t.due.includes("7:05"));
   const keyAsk = keyPings.find((p) => p.unit === me.unit && p.status === "sent");
   const ride = ridePings.find((p) => p.unit === me.unit);
+  const desk = deskNotes.find((n) => n.unit === me.unit);
 
   const readyMs = live?.status === "staged" && live.stagedAt ? now - live.stagedAt : 0;
   const readyMin = readyMs / 60000;
@@ -262,6 +264,14 @@ function Resident() {
             if (r.ok) setNote("");
           }}>Save this time</Button>
         </div>
+
+        {desk ? (
+          <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">TEXT · {me.phone}</p>
+            <p className="mt-1 font-display text-xl text-navy">Note from the desk</p>
+            <p className="mt-1 text-sm text-navy/80">{desk.body}</p>
+          </section>
+        ) : null}
 
         {ride && live?.status !== "claimed" && live?.status !== "staged" ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">

@@ -96,6 +96,13 @@ export type KeyPing = {
   resolvedHow?: "parked" | "keys_returned" | "cancelled" | "closed";
 };
 
+export type DeskNote = {
+  id: number;
+  unit: string;
+  body: string;
+  at: number;
+};
+
 export type RidePing = {
   id: number;
   unit: string;

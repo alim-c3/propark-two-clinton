@@ -204,8 +204,11 @@ function Manager() {
   const restack = useLane((s) => s.restack);
   const acceptRestack = useLane((s) => s.acceptRestack);
   const dismissRestack = useLane((s) => s.dismissRestack);
+  const postChat = useLane((s) => s.postChat);
+  const notifyResident = useLane((s) => s.notifyResident);
   const now = useNow();
   const [foundStall, setFoundStall] = useState<string | undefined>();
+  const [calls, setCalls] = useState<Record<string, "approved" | "rejected">>({});
 
   const live = tickets.filter((t) => t.status !== "cancelled" && t.status !== "released");
   const onFloor = Object.values(staff).filter(Boolean).length;
@@ -247,6 +250,22 @@ function Manager() {
 
   function seeForecast() {
     document.getElementById("forecast")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function decideInsight(unitLabel: string, decision: "approved" | "rejected") {
+    const row = FINGERPRINTS.find((r) => r.unit === unitLabel);
+    if (!row) return;
+    const resident = unitLabel.startsWith("702");
+    const body = resident
+      ? decision === "approved"
+        ? `Runway: we’d like a standing pickup for your ${row.car}. Out ${row.leave}, back ${row.back}. ${row.note}.`
+        : `Runway: we’re not adding a standing pickup for your ${row.car}. ${row.note}. Ask when you need the car.`
+      : decision === "approved"
+        ? `Pro-fit approved: ${row.unit} · ${row.car}. ${row.note}.`
+        : `Pro-fit rejected: ignore “${row.note}” for ${row.unit} · ${row.car}.`;
+    const result = resident ? notifyResident(unitLabel.split(" ")[0], body) : postChat(body);
+    toast[result.ok ? "success" : "error"](result.message);
+    if (result.ok) setCalls((current) => ({ ...current, [unitLabel]: decision }));
   }
 
   const stats: Array<{ k: string; v: string; s: string; tone?: "ok" | "danger" }> = [
@@ -355,20 +374,34 @@ function Manager() {
         <div className="mt-4"><StreetCredBoard /></div>
 
         <section className="mt-4 rounded-2xl border border-line bg-white p-4">
-          <h2 className="font-display text-2xl">Who leaves when — sample 14 days</h2>
+          <h2 className="font-display text-2xl">Pro-fit Engine Insights</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {FINGERPRINTS.map((r) => (
-              <article key={r.unit} className="rounded-xl border border-line p-4">
-                <p className="font-semibold">{r.unit}</p>
-                <p className="text-sm text-muted">{r.car}</p>
-                <p className="mt-2 text-sm">Out {r.leave} · back {r.back}</p>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                  <div className="h-full rounded-full bg-gold" style={{ width: `${r.hit}%` }} />
-                </div>
-                <p className="mt-1 text-xs tabular-nums text-muted">{r.hit ? `${r.hit}% hit rate` : "Charge-gated"}</p>
-                <p className="mt-2 text-sm text-navy">{r.note}</p>
-              </article>
-            ))}
+            {FINGERPRINTS.map((r) => {
+              const resident = r.unit.startsWith("702");
+              const decision = calls[r.unit];
+              return (
+                <article key={r.unit} className="rounded-xl border border-line p-4">
+                  <p className="font-semibold">{r.unit}</p>
+                  <p className="text-sm text-muted">{r.car}</p>
+                  <p className="mt-2 text-sm">Out {r.leave} · back {r.back}</p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
+                    <div className="h-full rounded-full bg-gold" style={{ width: `${r.hit}%` }} />
+                  </div>
+                  <p className="mt-1 text-xs tabular-nums text-muted">{r.hit ? `${r.hit}% hit rate` : "Charge-gated"}</p>
+                  <p className="mt-2 text-sm text-navy">{r.note}</p>
+                  {decision ? (
+                    <p className="mt-3 text-sm font-semibold text-ok">
+                      {decision === "approved" ? "Approved" : "Rejected"} · sent to the {resident ? "resident" : "valets"}
+                    </p>
+                  ) : (
+                    <div className="mt-3 flex gap-2">
+                      <Button variant="navy" size="sm" onClick={() => decideInsight(r.unit, "approved")}>Approve</Button>
+                      <Button variant="ghost" size="sm" onClick={() => decideInsight(r.unit, "rejected")}>Reject</Button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </section>
 

@@ -4,7 +4,7 @@ import { credEvent, INITIAL_CRED, scoreOf, type CredEvent, type CredKind } from 
 import { pickInboundStall, runPlan, stallCode, stallTaken } from "./run";
 import { CONTACTS, INITIAL_CHAT, INITIAL_RIDE_PINGS, INITIAL_TICKETS, RESTACK, residentOf, STALLS, keyRequestCopy, ridePingCopy } from "./seed";
 import { etaMin, placeLine, retrieveQueue, stillLine } from "./queue";
-import type { ChatMsg, KeyPing, Punch, Result, RidePing, ShiftPull, Ticket, TicketStatus, TicketType } from "./types";
+import type { ChatMsg, DeskNote, KeyPing, Punch, Result, RidePing, ShiftPull, Ticket, TicketStatus, TicketType } from "./types";
 
 type StaffKey = "you" | "Luis" | "Ana" | "Derrick";
 type RestackState = "pending" | "accepted" | "dismissed";
@@ -20,6 +20,8 @@ type LaneState = {
   pingId: number;
   ridePings: RidePing[];
   rideId: number;
+  deskNotes: DeskNote[];
+  noteId: number;
   punches: Punch[];
   pulls: ShiftPull[];
   onBreak: boolean;
@@ -43,6 +45,7 @@ type LaneState = {
   pingKeys: (unit: string) => Result;
   ackKeys: (id: number) => Result;
   returnKeys: (unit: string) => Result;
+  notifyResident: (unit: string, body: string) => Result;
   reset: () => void;
 };
 
@@ -109,6 +112,8 @@ function fresh(): Pick<
   | "pingId"
   | "ridePings"
   | "rideId"
+  | "deskNotes"
+  | "noteId"
   | "punches"
   | "pulls"
   | "onBreak"
@@ -125,6 +130,8 @@ function fresh(): Pick<
     pingId: 1,
     ridePings: INITIAL_RIDE_PINGS.map((p) => ({ ...p })),
     rideId: 1,
+    deskNotes: [],
+    noteId: 1,
     punches: INITIAL_PUNCHES.map((p) => ({ ...p })),
     pulls: INITIAL_PULLS.map((p) => ({ ...p })),
     onBreak: false,
@@ -766,6 +773,17 @@ export const useLane = create<LaneState>((set, get) => ({
       ...pushChat(s.chat, s.chatId, "Runway", `Keys returned for APT ${unit}.`),
     });
     return { ok: true, message: "Keys marked returned." };
+  },
+
+  notifyResident: (unit, body) => {
+    const text = body.trim();
+    if (!text) return { ok: false, message: "Nothing to send." };
+    const c = CONTACTS.find((x) => x.unit === unit);
+    if (!c) return { ok: false, message: "No resident on file for that unit." };
+    const s = get();
+    const note: DeskNote = { id: s.noteId + 1, unit, body: text, at: Date.now() };
+    set({ noteId: note.id, deskNotes: [note, ...s.deskNotes] });
+    return { ok: true, message: `Texted ${c.name}.` };
   },
 
   reset: () => set({ ...fresh(), activeUnit: get().activeUnit }),

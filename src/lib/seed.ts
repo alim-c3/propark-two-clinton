@@ -36,6 +36,9 @@ export function ridePingCopy(t: {
   toStall?: string;
 }, kind: RidePing["kind"]) {
   const inbound = t.type === "arrival";
+  if (kind === "nudge") {
+    return `Your ${t.car} (${t.plate}) is still at the Clinton Place curb. Please come down.`;
+  }
   if (kind === "getting") {
     return inbound
       ? `Runway: we’ve got your ${t.car} at the curb. Parking it now.`
@@ -132,7 +135,7 @@ export const INITIAL_TICKETS: Ticket[] = [
   },
   {
     id: 106, type: "now", unit: "PH4", name: "Jordan Blake", car: "Macan", color: "Gray", plate: "GT-55", stall: "C-05", due: "Now", status: "staged", valet: "Ana",
-    note: "Waiting at the Clinton Place curb", requestedAt: T0 - 14 * 60000, claimedAt: T0 - 8 * 60000, stagedAt: T0 - 3 * 60000,
+    note: "Waiting at the Clinton Place curb", requestedAt: T0 - 14 * 60000, claimedAt: T0 - 12 * 60000, stagedAt: T0 - 8 * 60000,
   },
   {
     id: 107, type: "now", unit: "1512", name: "Mei Chen", car: "Lexus RX", color: "Graphite", plate: "NYC-8821", stall: "B-15", due: "Now", status: "claimed", valet: "Derrick",

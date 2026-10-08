@@ -73,6 +73,15 @@
   animation: valet-work 1s ease-in-out infinite;
 }
 
+@keyframes valet-other {
+  0%, 100% { fill: #1d4e89; }
+  50% { fill: #93c5fd; }
+}
+
+.valet-other {
+  animation: valet-other 1s ease-in-out infinite;
+}
+
 @keyframes stall-hit {
   0%, 100% { box-shadow: 0 0 0 2px var(--color-gold); }
   50% { box-shadow: 0 0 0 4px var(--color-gold); }

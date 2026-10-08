@@ -136,14 +136,14 @@ function sampleCar(id: string) {
   return { taken: n % 5 < 2, car, plate };
 }
 
-function workingOn(tickets: Ticket[]) {
-  const out: Record<string, { valet: string; car: string; plate: string }> = {};
+function workingOn(tickets: Ticket[], viewer = "You") {
+  const out: Record<string, { valet: string; car: string; plate: string; mine: boolean }> = {};
   for (const t of tickets) {
     if (!t.valet || (t.status !== "claimed" && t.status !== "staged")) continue;
     if (t.type !== "arrival" && t.status === "staged") continue;
     const stall = t.type === "arrival" ? t.toStall ?? t.stall : t.stall;
     if (!stall || stall === "curb") continue;
-    out[stall] = { valet: t.valet, car: t.car, plate: t.plate };
+    out[stall] = { valet: t.valet, car: t.car, plate: t.plate, mine: t.valet === viewer };
   }
   return out;
 }
@@ -163,7 +163,7 @@ function Plate({
   hitIds: Set<string>;
   onPick: (id: string) => void;
   dark: boolean;
-  working: Record<string, { valet: string; car: string; plate: string }>;
+  working: Record<string, { valet: string; car: string; plate: string; mine: boolean }>;
 }) {
   const three = level === "3B";
   const slab = dark ? "#2a3340" : "#e2dac8";
@@ -241,7 +241,7 @@ function Plate({
             const occupied = job ? true : s ? Boolean(s.plate) : sample.taken;
             const isDest = dest === p.id;
             const active = sel === p.id || highlight === p.id || isDest || hitIds.has(p.id);
-            const fill = job ? "#9b1c1c" : isDest ? "#16a34a" : fillFor(occupied);
+            const fill = job ? (job.mine ? "#9b1c1c" : "#1d4e89") : isDest ? "#16a34a" : fillFor(occupied);
             const tipText = job
               ? `${job.valet} · ${job.car} · ${job.plate}`
               : occupied
@@ -258,7 +258,7 @@ function Plate({
                 onMouseLeave={() => setTip(null)}
                 className="cursor-pointer"
               >
-                <rect className={job ? "valet-working" : isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
+                <rect className={job ? (job.mine ? "valet-working" : "valet-other") : isDest ? "dest-stall" : undefined} x={p.x + 8} y={p.y + 8} width={p.w} height={p.h} fill={fill} stroke={active ? "#e8c547" : ink} strokeWidth={active ? 0.7 : 0.28} />
                 <line x1={p.x + 8} y1={p.y + 8} x2={p.x + 8 + p.w} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 <line x1={p.x + 8 + p.w} y1={p.y + 8} x2={p.x + 8} y2={p.y + 8 + p.h} stroke="rgba(21,32,51,0.22)" strokeWidth="0.18" />
                 {p.live ? (
@@ -341,7 +341,7 @@ export function GarageMap({
               )) : <li className="px-1 py-2 text-sm text-muted">Nothing on the deck matches.</li>}
             </ul>
           ) : null}
-          <p className="mt-3 text-xs text-muted">Lessard A-101 · scroll 3B then 2B. Same packed plate as the field preview. Live tickets sit on A/B/C/P/R. Grey is the 24′ drive.</p>
+          <p className="mt-3 text-xs text-muted">Car search. Green is open. Dark is taken. Red is your car. Blue is another valet.</p>
           {stall ? (
             <p className="mt-1 text-xs text-muted">
               {stall.plate ? `${stall.id} · ${[stall.car, stall.color].filter(Boolean).join(" · ")} · ${stall.plate}${stall.blockedBy ? ` · nested behind ${stall.blockedBy}` : ""}` : `${stall.id} open`}
@@ -350,10 +350,7 @@ export function GarageMap({
         </section>
       ) : (
         <section className={cn("rounded-2xl border p-4", dark ? "border-navy-2 bg-navy-2/40 text-cream" : "border-line bg-white text-navy")}>
-          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">LESSARD A-101 · SCROLL 3B THEN 2B</p>
-          <p className={cn("mt-1 text-xs", dark ? "text-cream/70" : "text-muted")}>
-            Same packed plate as the field preview. Live tickets sit on A/B/C/P/R. Grey is the 24′ drive.
-          </p>
+          <p className="font-display text-2xl">Car search</p>
           <label className="relative mt-3 block">
             <Search className={cn("pointer-events-none absolute top-3.5 left-3 size-4", dark ? "text-cream/50" : "text-muted")} />
             <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tesla, HST-4412, B-14…" autoComplete="off" className={cn("w-full rounded-xl border py-3 pr-3 pl-10 text-sm", dark ? "border-navy-2 bg-navy text-cream placeholder:text-cream/40" : "border-line bg-cream text-navy placeholder:text-muted")} />

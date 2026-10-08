@@ -57,6 +57,8 @@ type LaneState = {
       valetTask?: { unit: string; car: string; plate: string; stall: string; body: string };
     },
   ) => Result;
+  acceptFloorTask: (id: number) => Result;
+  nudgeCurb: (id: number) => Result;
   reset: () => void;
 };
 
@@ -855,6 +857,32 @@ export const useLane = create<LaneState>((set, get) => ({
     if (email) return { ok: true, message: "Pro-fit engine updated. Resident emailed." };
     if (task) return { ok: true, message: "Pro-fit engine updated. Valets tasked." };
     return { ok: true, message: "Pro-fit engine updated." };
+  },
+
+  acceptFloorTask: (id) => {
+    const task = get().floorTasks.find((t) => t.id === id);
+    if (!task) return { ok: false, message: "That task is gone." };
+    if (task.acceptedBy) return { ok: false, message: `${task.acceptedBy} already has this.` };
+    set({
+      floorTasks: get().floorTasks.map((t) => (t.id === id ? { ...t, acceptedBy: "You" } : t)),
+    });
+    return { ok: true, message: "You have this task." };
+  },
+
+  nudgeCurb: (id) => {
+    const s = get();
+    const t = s.tickets.find((x) => x.id === id);
+    if (!t || t.status !== "staged" || t.type === "arrival" || !t.stagedAt) {
+      return { ok: false, message: "That car is not waiting at the curb." };
+    }
+    if (Date.now() - t.stagedAt < 5 * 60000) return { ok: false, message: "Wait until it has been 5 minutes." };
+    if (s.ridePings.some((p) => p.ticketId === id && p.kind === "nudge")) {
+      return { ok: true, message: "Resident already pinged." };
+    }
+    const ride = pushRide(s.ridePings, s.rideId, t, "nudge");
+    const note = pushChat(s.chat, s.chatId, "You", `Pinged APT ${t.unit} · ${t.car} is still at the curb.`);
+    set({ ...ride, ...note });
+    return { ok: true, message: `Pinged ${t.name}.` };
   },
 
   reset: () => set({ ...fresh(), activeUnit: get().activeUnit }),

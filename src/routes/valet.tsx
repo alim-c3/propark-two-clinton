@@ -18,7 +18,7 @@ import { runPlan, stallCode } from "@/lib/run";
 import { CONTACTS } from "@/lib/seed";
 import { useLane } from "@/lib/store";
 import type { Ticket } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, useNow } from "@/lib/utils";
 
 export const Route = createFileRoute("/valet")({
   beforeLoad: () => enforceEvalNavigation("/valet"),
@@ -58,6 +58,10 @@ function Valet() {
   const keyPings = useLane((s) => s.keyPings);
   const returnKeys = useLane((s) => s.returnKeys);
   const floorTasks = useLane((s) => s.floorTasks);
+  const acceptFloorTask = useLane((s) => s.acceptFloorTask);
+  const nudgeCurb = useLane((s) => s.nudgeCurb);
+  const ridePings = useLane((s) => s.ridePings);
+  const now = useNow();
 
   function keysOpen(t: Ticket) {
     return keyPings.some(
@@ -75,6 +79,33 @@ function Valet() {
   const destStall = next ? next.toStall ?? (plan ? stallCode(plan.to) : null) ?? plan?.to : undefined;
   const parking = Boolean(next && plan?.dir === "in" && next.status === "claimed");
   const locked = Boolean(mine && (mine.status === "claimed" || mine.status === "staged"));
+
+  function waitingAtCurb(t: Ticket) {
+    return t.status === "staged" && t.type !== "arrival" && !!t.stagedAt && now - t.stagedAt >= 5 * 60000;
+  }
+
+  function curbPing(t: Ticket) {
+    if (!waitingAtCurb(t) || !t.stagedAt) return null;
+    const nudged = ridePings.some((p) => p.ticketId === t.id && p.kind === "nudge");
+    const mins = Math.max(5, Math.round((now - t.stagedAt) / 60000));
+    return (
+      <div className="mt-3">
+        <p className="text-sm text-cream/70">At the curb {mins} min.</p>
+        <Button
+          className="mt-2"
+          variant={nudged ? "ghostDark" : "gold"}
+          size="block"
+          disabled={nudged}
+          onClick={() => {
+            const r = nudgeCurb(t.id);
+            toast[r.ok ? "success" : "error"](r.message);
+          }}
+        >
+          {nudged ? "Resident pinged" : "Ping resident to come down"}
+        </Button>
+      </div>
+    );
+  }
 
   function run(t: Ticket) {
     const a = jobAction(t);
@@ -112,7 +143,7 @@ function Valet() {
         <h1 className="mt-2 font-display text-3xl">
           {!staff.you ? "Clock in. Then take the next car."
             : parking ? "Park it. Green stall is yours."
-            : next ? next.blockedBy ? `Nest first. ${next.blockedBy} is in the way.` : plan ? `${plan.from} → ${plan.to}` : "This is the car."
+            : next ? next.blockedBy ? `Nest first. ${next.blockedBy} is in the way.` : next.car
             : "Waiting on Get going."}
         </h1>
 
@@ -152,7 +183,6 @@ function Valet() {
                   <p className="mt-2 font-display text-4xl leading-tight text-gold">{plan ? `${plan.from} → ${plan.to}` : next.stall}</p>
                   <p className="mt-2 font-display text-xl">{next.car} · {next.color}</p>
                   <p className="text-xs text-cream/55">{next.plate} · APT {next.unit}</p>
-                  {plan ? <p className="mt-3 rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-navy">{plan.liftLabel}. {plan.destLabel}.</p> : null}
                   {next.blockedBy ? <p className="mt-3 rounded-xl bg-gold/80 px-3 py-2 text-sm font-semibold text-navy">Nest first. {next.blockedBy} is in the way.</p> : null}
                   {locked && plan?.dir === "out" ? (
                     <p className="mt-3 rounded-xl border border-gold/50 bg-navy px-3 py-2 text-sm text-gold">
@@ -161,6 +191,7 @@ function Valet() {
                   ) : null}
                   {action ? <Button className="mt-4 hidden sm:flex" variant="gold" size="block" onClick={() => run(next)}>{action.label}</Button> : null}
                   {keysOpen(next) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(next.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
+                  {curbPing(next)}
                   {locked && next.status === "claimed" && plan?.dir === "out" ? <Flip to="/resident" label="Resident was pinged" why="They see we’re bringing the car up." tone="dark" /> : null}
                   {next.status === "staged" && plan?.dir === "out" ? <Flip to="/resident" label="Open resident — car is ready" why="Timer is running on their phone." tone="dark" /> : null}
                 </div>
@@ -174,9 +205,9 @@ function Valet() {
 
             <div className="mt-6 space-y-6">
               <YourShift />
-              {floorTasks.length ? (
-                <section>
-                  <h2 className="font-display text-2xl">Tasks from the desk</h2>
+              <section>
+                <h2 className="font-display text-2xl">Tasks from the tower</h2>
+                {floorTasks.length ? (
                   <div className="mt-3 flex flex-col gap-3">
                     {floorTasks.map((task) => (
                       <article key={task.id} className="rounded-2xl border border-gold/40 bg-navy-2 p-4">
@@ -184,24 +215,22 @@ function Valet() {
                         <p className="mt-1 font-display text-xl">{task.car} · {task.plate}</p>
                         <p className="text-xs text-cream/55">APT {task.unit} · {task.stall}</p>
                         <p className="mt-2 text-sm text-cream/80">{task.body}</p>
+                        {task.acceptedBy ? (
+                          <p className="mt-3 text-sm font-semibold text-gold">{task.acceptedBy === "You" ? "You have this." : `${task.acceptedBy} has this.`}</p>
+                        ) : (
+                          <Button className="mt-3" variant="gold" size="block" onClick={() => { const r = acceptFloorTask(task.id); toast[r.ok ? "success" : "error"](r.message); }}>Accept</Button>
+                        )}
                       </article>
                     ))}
                   </div>
-                </section>
-              ) : null}
-              <HostStand tickets={tickets} staff={staff} tone="dark" />
-              <KeyReturn />
-              {!parking ? (
-                <GarageMap tone="dark" highlight={next?.stall === "curb" ? next?.toStall : next?.stall} dest={plan ? stallCode(plan.to) ?? undefined : undefined} onPick={(id) => {
-                  if (locked && next?.type !== "arrival") { toast.error("Finish this car first."); return; }
-                  const r = takeCar(id);
-                  if (r.message) toast[r.ok ? "success" : "error"](r.message);
-                }} />
-              ) : null}
+                ) : (
+                  <p className="mt-2 text-sm text-cream/60">No tower tasks right now.</p>
+                )}
+              </section>
               {others.length ? (
-                <>
-                  <h2 className="font-display text-2xl">After this</h2>
-                  <div className="flex flex-col gap-3">
+                <section>
+                  <h2 className="font-display text-2xl">Next tasks</h2>
+                  <div className="mt-3 flex flex-col gap-3">
                     {others.map((t) => {
                       const a = jobAction(t);
                       const mineJob = t.status === "open" || t.valet === "You";
@@ -209,15 +238,28 @@ function Valet() {
                         <div key={t.id}>
                           <TicketCard ticket={t} tone="dark" action={!locked && mineJob ? a?.label : undefined} onAction={!locked && mineJob && a ? () => run(t) : undefined} />
                           {keysOpen(t) ? <Button className="mt-2" variant="ghostDark" size="block" onClick={() => { const r = returnKeys(t.unit); toast[r.ok ? "success" : "error"](r.message); }}>Keys returned</Button> : null}
+                          {curbPing(t)}
                         </div>
                       );
                     })}
                   </div>
-                </>
+                </section>
               ) : null}
+              <HostStand tickets={tickets} staff={staff} tone="dark" />
+              <KeyReturn />
             </div>
           </>
         )}
+
+        {staff.you && !parking ? (
+          <div className="mt-8">
+            <GarageMap tone="dark" highlight={next?.stall === "curb" ? next?.toStall : next?.stall} dest={plan ? stallCode(plan.to) ?? undefined : undefined} onPick={(id) => {
+              if (locked && next?.type !== "arrival") { toast.error("Finish this car first."); return; }
+              const r = takeCar(id);
+              if (r.message) toast[r.ok ? "success" : "error"](r.message);
+            }} />
+          </div>
+        ) : null}
 
         <div className="mt-8"><ValetChat /></div>
 

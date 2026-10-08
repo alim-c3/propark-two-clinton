@@ -112,13 +112,14 @@ export type FloorTask = {
   stall: string;
   body: string;
   at: number;
+  acceptedBy?: string;
 };
 
 export type RidePing = {
   id: number;
   unit: string;
   ticketId: number;
-  kind: "getting" | "ready";
+  kind: "getting" | "ready" | "nudge";
   sms: string;
   at: number;
 };

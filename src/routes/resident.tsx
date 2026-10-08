@@ -277,10 +277,10 @@ function Resident() {
           </section>
         ) : null}
 
-        {ride && live?.status !== "claimed" && live?.status !== "staged" ? (
+        {ride && (ride.kind === "nudge" || (live?.status !== "claimed" && live?.status !== "staged")) ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
             <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">TEXT · {me.phone}</p>
-            <p className="mt-1 font-display text-xl text-navy">{ride.kind === "ready" ? "Your car is ready on the runway." : "We’re getting your car."}</p>
+            <p className="mt-1 font-display text-xl text-navy">{ride.kind === "nudge" ? "Your car is still at the curb." : ride.kind === "ready" ? "Your car is ready on the runway." : "We’re getting your car."}</p>
             <p className="mt-1 text-sm text-navy/80">{ride.sms}</p>
           </section>
         ) : null}

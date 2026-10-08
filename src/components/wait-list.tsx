@@ -47,16 +47,11 @@ function stallHint(id: string) {
 
 function StallWhere({
   stall,
-  queue,
 }: {
   stall: string;
-  queue: string;
 }) {
   return (
-    <div className="mt-3 rounded-xl bg-cream px-3 py-3 text-navy">
-      <p className="font-display text-3xl sm:text-4xl">{stall}</p>
-      <p className="mt-1 text-sm">{queue}</p>
-    </div>
+    <p className="mt-2 text-sm text-cream/80">Your vehicle is still in {stall}.</p>
   );
 }
 
@@ -181,25 +176,16 @@ export function CurbPager({
           <LiveDot />
           {pulling ? "WE’RE GETTING YOUR CAR" : "YOUR PLACE"}
         </p>
-        <p className="mt-2 font-display text-3xl tabular-nums text-gold sm:text-4xl">
+        <p className="mt-2 font-display text-3xl text-gold sm:text-4xl">
           {pulling
             ? "A valet has it"
-            : spot.stillMin <= 1
-              ? "About a minute"
-              : `${spot.stillMin} min`}
+            : `${placeLine(spot.place)}${
+                spot.place > 1
+                  ? ` · ${spot.place - 1} car${spot.place - 1 === 1 ? "" : "s"} ahead`
+                  : ""
+              }`}
         </p>
-        <StallWhere
-          stall={stallId}
-          queue={
-            pulling
-              ? "We’ll ping you when it’s ready on the runway."
-              : `${placeLine(spot.place)}${
-                  spot.place > 1
-                    ? ` · ${spot.place - 1} car${spot.place - 1 === 1 ? "" : "s"} ahead`
-                    : ""
-                }`
-          }
-        />
+        <StallWhere stall={stallId} />
       </section>
     );
   }

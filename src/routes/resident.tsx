@@ -10,10 +10,8 @@ import { DemoBar } from "@/components/demo-bar";
 import { TicketCard } from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { CurbPager } from "@/components/wait-list";
-import { CONTACTS, RESIDENT_CHOICES, residentOf } from "@/lib/seed";
-import { scoreMap } from "@/lib/cred";
+import { RESIDENT_CHOICES, residentOf } from "@/lib/seed";
 import { useLane } from "@/lib/store";
-import { placeLine, placeOf } from "@/lib/queue";
 import type { Ticket } from "@/lib/types";
 import { localInputValue, cn, useNow } from "@/lib/utils";
 
@@ -62,7 +60,6 @@ function Resident() {
   const expectBack = useLane((s) => s.expectBack);
   const keyPings = useLane((s) => s.keyPings);
   const ackKeys = useLane((s) => s.ackKeys);
-  const cred = useLane((s) => s.cred);
   const ridePings = useLane((s) => s.ridePings);
   const activeUnit = useLane((s) => s.activeUnit);
   const setActiveUnit = useLane((s) => s.setActiveUnit);
@@ -94,20 +91,15 @@ function Resident() {
   const [back, setBack] = useState("");
   const [pushMin, setPushMin] = useState("");
 
-  const onFloor = Object.values(staff).filter(Boolean).length;
-  const scores = scoreMap(cred, CONTACTS.map((c) => c.unit));
-  const spot = live ? placeOf(tickets, live.id, onFloor, now, scores) : undefined;
-
+  const waiting = live?.type === "now" && live.status === "open";
   const h1 =
     live?.status === "staged" ? "Your car is ready on the runway."
     : live?.status === "claimed" ? "We’re bringing your car up."
-    : spot ? `${placeLine(spot.place)}.`
-    : live?.type === "now" ? "Your car is on its way."
     : `Hi ${me.first}. We’ll help you take off.`;
   const cap =
     live?.status === "staged" ? `Ready for ${fmtReady(readyMs)}. Clinton Place curb.`
     : live?.status === "claimed" ? "A valet has it on the lift. You’ll get a ping when it’s at the curb."
-    : spot ? `${spot.stillMin <= 1 ? "About a minute" : `${spot.stillMin} min`} · still in ${live?.stall}.`
+    : waiting ? ""
     : standing ? "Thursday 7:05 is on your list. The garage already knew."
     : `Your ${me.car} is downstairs in ${me.stall}${me.charge ? `, ${me.charge}%` : ""}.`;
 
@@ -140,7 +132,7 @@ function Resident() {
 
         <p className="mt-4 text-[10px] font-bold tracking-[0.18em] text-gold-2">GOOD EVENING · APT {me.unit} · FLOOR {me.floor}</p>
         <h1 className="mt-2 font-display text-3xl text-navy">{h1}</h1>
-        <p className="mt-2 text-sm text-muted">{cap}</p>
+        {cap ? <p className="mt-2 text-sm text-muted">{cap}</p> : null}
 
         {live?.status === "staged" ? (
           <section className="mt-4 rounded-2xl border border-gold bg-gold/20 p-4">
@@ -170,8 +162,8 @@ function Resident() {
                 <input
                   value={pullNote}
                   onChange={(e) => setPullNote(e.target.value)}
-                  placeholder="Child seat, groceries…"
-                  className="mt-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm"
+                  placeholder="Add an optional note, e.g. child seat, groceries…"
+                  className="mt-3 w-full rounded-full border border-line bg-white px-4 py-3 text-sm text-navy placeholder:text-muted"
                 />
                 <div className="mt-3 flex flex-col gap-2">
                   <Button variant="gold" size="block" onClick={go}>Yes — let’s take off</Button>
@@ -227,7 +219,7 @@ function Resident() {
 
         {carOut ? (
           <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
-            <span className="font-display text-lg text-navy">Let us know when you’ll be back (optional)</span>
+            <span className="font-display text-lg text-navy">Let us know when you’ll be back</span>
             <select
               value={backOptions.includes(back) ? back : ""}
               onChange={(e) => {
@@ -239,7 +231,7 @@ function Resident() {
               }}
               className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
             >
-              <option value="">Skip for now</option>
+              <option value="">Pick a time</option>
               {backOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
@@ -298,11 +290,11 @@ function Resident() {
               toast[r.ok ? "success" : "error"](r.message);
             }}>Thursday 7:05</Button>
           )}
-          <Button variant="ghost" size="block" onClick={() => {
+          <Button variant="navy" size="block" onClick={() => {
             const r = schedule("arrival", when.replace("T", " "), note || "On the way in");
             toast[r.ok ? "success" : "error"](r.message);
           }}>I’m on my way in</Button>
-          <h2 className="font-display text-xl">Your requests</h2>
+          <h2 className="font-display text-xl">Your Upcoming and Requests</h2>
           <div className="flex flex-col gap-3">
             {mine.filter((t) => t.id !== live?.id && t.status !== "cancelled" && t.status !== "released").map((t) => (
               <TicketCard key={t.id} ticket={t} audience="resident" onCancel={t.status === "open" ? () => {

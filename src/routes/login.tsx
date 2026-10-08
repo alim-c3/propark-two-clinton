@@ -37,12 +37,12 @@ function LoginPage() {
       await navigate({ to: "/eval/revoked" });
       return;
     }
-    if (input.accessStatus !== "active") {
-      await navigate({ to: "/eval/pending" });
-      return;
-    }
     if (!input.acceptedCurrentTerms) {
       await navigate({ to: "/eval/terms", search: { next: destination(next) } });
+      return;
+    }
+    if (input.accessStatus !== "active") {
+      await navigate({ to: "/eval/pending" });
       return;
     }
     await navigate({ to: destination(next) as "/" });
@@ -54,10 +54,6 @@ function LoginPage() {
     setError(null);
     try {
       const result = await startEvalSignIn({ data: { email } });
-      if (result.method === "email") {
-        await routeAfterAuth(result);
-        return;
-      }
       setSent(true);
       setNotice(
         result.delivered
@@ -81,7 +77,7 @@ function LoginPage() {
       const result = await verifyEvalCode({ data: { email, code } });
       await routeAfterAuth({
         accessStatus: result.accessStatus,
-        acceptedCurrentTerms: false,
+        acceptedCurrentTerms: result.acceptedCurrentTerms,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify that code.");
@@ -94,7 +90,7 @@ function LoginPage() {
     <EvalShell>
       <h1 className="mt-3 font-display text-3xl">Welcome to Runway</h1>
       <p className="mt-2 text-sm text-cream/70">
-        Enter your approved work email to continue.
+        Enter your email. We&rsquo;ll send a 6-digit code to confirm it&rsquo;s yours.
       </p>
       <form className="mt-6 space-y-3" onSubmit={sent ? verify : continueWithEmail}>
         <label className="block text-xs font-semibold tracking-wide text-cream/70">

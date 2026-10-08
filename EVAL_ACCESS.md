@@ -1,8 +1,10 @@
 # Runway evaluation access
 
-Flow: Public marketing home → protected seat → email → one-time code (first visit only) → Runway Evaluation Terms → Runway.
+Flow (v0.91): public home → email → one-time code (always required) → name + Runway Evaluation Terms → Runway if approved, otherwise "Request received" until the admin approves.
 
-Approved evaluators are listed in `src/lib/eval/config.ts` (`DEFAULT_ALLOWED_EMAILS`). Add more there or with `RUNWAY_EVAL_ALLOWED_EMAILS`. Unknown emails are rejected.
+Anyone can verify an email and accept the terms. Every acceptance is stored in `legal_acceptances` (name, email, IP, device, language, time zone, screen, referrer, terms version) and emailed to the admin(s) in `RUNWAY_EVAL_ADMIN_EMAILS` / `DEFAULT_ADMIN_EMAILS` (needs `RESEND_API_KEY`; without it the email is only logged).
+
+Approval: open `/admin` (redirects to `/admin/evaluators`), click Approve next to the person, or add an email to pre-approve it. Pre-approved emails in `src/lib/eval/config.ts` (`DEFAULT_ALLOWED_EMAILS`) and `RUNWAY_EVAL_ALLOWED_EMAILS` stay approved automatically.
 
 Public: `/` only (plus `/login` and the terms screens).
 Protected: `/features`, `/resident`, `/valet`, `/manager`, and evaluation APIs.

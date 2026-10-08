@@ -9,7 +9,6 @@ import {
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
 import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, evaluatorHasCurrentTerms } from "./access.server";
-import { canSkipOtp, emailOnAllowlist, initialAccessStatus, readEvalPolicy } from "./policy";
 import { writeEvalCookie } from "./session-cookie.server";
 import { RUNWAY_EVALUATION_TERMS_VERSION } from "./config";
 
@@ -30,63 +29,20 @@ function hashOtp(email: string, code: string): string {
   return sha256Hex(`${otpPepper()}:${normalizeEmail(email)}:${code}`);
 }
 
-export async function beginSignIn(emailRaw: string, _origin: string) {
+export async function beginSignIn(emailRaw: string, origin: string) {
   const email = normalizeEmail(emailRaw);
-  const policy = readEvalPolicy();
-  if (!policy.openRegistration && !emailOnAllowlist(email, policy)) {
-    throw new EvalOtpError("This email is not on the evaluator list.", 403);
-  }
-
-  const accessStatus = initialAccessStatus({ email, invited: true, policy });
-  let acceptedCurrentTerms = false;
-  let evaluatorId = newId("eval");
-
   try {
     const existing = await findEvaluatorByEmail(email);
     if (existing?.access_status === "revoked") {
       throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
     }
-    if (existing) {
-      evaluatorId = existing.id;
-      acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
-      if (
-        !canSkipOtp({
-          emailVerified: existing.email_verified,
-          accessStatus: existing.access_status,
-        })
-      ) {
-        await upsertEvaluator({ email, invited: true, markVerified: true });
-      }
-      await createEvalSession(existing.id);
-    } else {
-      const evaluator = await upsertEvaluator({
-        email,
-        invited: true,
-        markVerified: true,
-      });
-      evaluatorId = evaluator.id;
-      await createEvalSession(evaluator.id);
-    }
   } catch (err) {
     if (err instanceof EvalOtpError) throw err;
-    console.error("[eval] database unavailable; continuing with signed session", err);
+    console.error("[eval] could not check revoked status before sending code", err);
   }
-
-  await writeEvalCookie({
-    email,
-    verified: true,
-    accessStatus,
-    acceptedVersion: acceptedCurrentTerms ? RUNWAY_EVALUATION_TERMS_VERSION : null,
-    evaluatorId,
-  });
-
-  return {
-    ok: true as const,
-    method: "email" as const,
-    email,
-    accessStatus,
-    acceptedCurrentTerms,
-  };
+  // Anyone may request a code. Typing an email proves nothing, so a code
+  // is always required before a session exists.
+  return { method: "otp" as const, ...(await requestOtp(email, origin)) };
 }
 
 export async function requestOtp(emailRaw: string, origin: string) {
@@ -186,6 +142,22 @@ export async function verifyOtp(emailRaw: string, codeRaw: string) {
   if (!consumed[0]) throw new EvalOtpError("That code was already used. Request a new code.");
 
   const evaluator = await upsertEvaluator({ email, markVerified: true });
+  if (evaluator.access_status === "revoked") {
+    throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
+  }
   await createEvalSession(evaluator.id);
-  return { ok: true as const, email, accessStatus: evaluator.access_status };
+  const acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
+  await writeEvalCookie({
+    email,
+    verified: true,
+    accessStatus: evaluator.access_status,
+    acceptedVersion: acceptedCurrentTerms ? RUNWAY_EVALUATION_TERMS_VERSION : null,
+    evaluatorId: evaluator.id,
+  });
+  return {
+    ok: true as const,
+    email,
+    accessStatus: evaluator.access_status,
+    acceptedCurrentTerms,
+  };
 }

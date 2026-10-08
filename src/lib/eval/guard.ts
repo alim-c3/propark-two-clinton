@@ -1,4 +1,4 @@
-import { redirect } from "@tanstack/react-router";
+import { isRedirect, redirect } from "@tanstack/react-router";
 import { getEvalStatus } from "./api";
 
 const PUBLIC_PREFIXES = [
@@ -29,14 +29,14 @@ export async function enforceEvalNavigation(pathname: string) {
     if (status.accessStatus === "revoked") {
       throw redirect({ to: "/eval/revoked" });
     }
-    if (status.accessStatus !== "active") {
-      throw redirect({ to: "/eval/pending" });
-    }
     if (!status.acceptedCurrentTerms) {
       throw redirect({ to: "/eval/terms", search: { next } });
     }
+    if (status.accessStatus !== "active") {
+      throw redirect({ to: "/eval/pending" });
+    }
   } catch (err) {
-    if (err && typeof err === "object" && "to" in (err as object)) throw err;
+    if (isRedirect(err)) throw err;
     throw redirect({ to: "/login", search: { next: pathname || "/" } });
   }
 }

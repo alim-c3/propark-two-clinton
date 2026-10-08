@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as ResidentRouteImport } from './routes/resident'
 import { Route as ValetRouteImport } from './routes/valet'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminEvaluatorsRouteImport } from './routes/admin/evaluators'
 import { Route as EvalAgreementRouteImport } from './routes/eval/agreement'
 import { Route as EvalPendingRouteImport } from './routes/eval/pending'
@@ -50,6 +51,11 @@ const ResidentRoute = ResidentRouteImport.update({
 const ValetRoute = ValetRouteImport.update({
   id: '/valet',
   path: '/valet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminEvaluatorsRoute = AdminEvaluatorsRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
   '/eval/terms': typeof EvalTermsRoute
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
   '/eval/terms': typeof EvalTermsRoute
+  '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
   '/eval/terms': typeof EvalTermsRoute
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/eval/pending'
     | '/eval/revoked'
     | '/eval/terms'
+    | '/admin/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/eval/pending'
     | '/eval/revoked'
     | '/eval/terms'
+    | '/admin'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/eval/pending'
     | '/eval/revoked'
     | '/eval/terms'
+    | '/admin/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   EvalPendingRoute: typeof EvalPendingRoute
   EvalRevokedRoute: typeof EvalRevokedRoute
   EvalTermsRoute: typeof EvalTermsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/valet'
       fullPath: '/valet'
       preLoaderRoute: typeof ValetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/evaluators': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   EvalPendingRoute: EvalPendingRoute,
   EvalRevokedRoute: EvalRevokedRoute,
   EvalTermsRoute: EvalTermsRoute,
+  AdminIndexRoute: AdminIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

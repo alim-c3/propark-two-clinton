@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { PitchNav } from "@/components/pitch-nav";
 import { Button } from "@/components/ui/button";
-import { startEvalSignIn } from "@/lib/eval/api";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -24,8 +23,8 @@ function Home() {
             Get going. We’ll help you take off.
           </h1>
           <p className="mt-4 max-w-xl text-base text-cream/90 sm:text-lg">
-            Enter your email to evaluate Runway. After you accept the terms,
-            Features, Resident, Valet, and Manager open for your session.
+            Enter your email to evaluate Runway. Confirm it with a code and accept the terms.
+            Once you&rsquo;re approved, Features, Resident, Valet, and Manager open for you.
           </p>
           <HomeAccessForm />
         </div>
@@ -45,20 +44,8 @@ function HomeAccessForm() {
     setBusy(true);
     setError(null);
     try {
-      const result = await startEvalSignIn({ data: { email } });
-      if (result.accessStatus === "revoked") {
-        await navigate({ to: "/eval/revoked" });
-        return;
-      }
-      if (result.accessStatus !== "active") {
-        await navigate({ to: "/eval/pending" });
-        return;
-      }
-      if (!result.acceptedCurrentTerms) {
-        await navigate({ to: "/eval/terms", search: { next: "/resident" } });
-        return;
-      }
-      await navigate({ to: "/resident" });
+      // The code step lives on /login; typing an email alone never signs anyone in.
+      await navigate({ to: "/login", search: { next: "/resident", email } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not continue.");
     } finally {

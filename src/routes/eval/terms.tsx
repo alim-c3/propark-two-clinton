@@ -18,6 +18,7 @@ export const Route = createFileRoute("/eval/terms")({
 function TermsPage() {
   const { next } = Route.useSearch();
   const navigate = useNavigate();
+  const [name, setName] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState<string>("");
@@ -39,18 +40,38 @@ function TermsPage() {
         await navigate({ to: (next || "/") as "/" });
         return;
       }
+      if (status.accessStatus === "revoked") {
+        await navigate({ to: "/eval/revoked" });
+        return;
+      }
+      if (status.acceptedCurrentTerms) {
+        await navigate({ to: "/eval/pending" });
+        return;
+      }
+      if (status.name) setName(status.name);
       const agreement = await getEvalAgreement();
       setBody(agreement.body);
     })();
   }, [navigate, next]);
 
   async function accept() {
-    if (!agreed) return;
+    if (!agreed || !name.trim()) return;
     setBusy(true);
     setError(null);
     try {
-      await acceptEvalTerms({ data: {} });
-      await navigate({ to: (next || "/") as "/" });
+      const result = await acceptEvalTerms({
+        data: {
+          name,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+          screen: `${window.screen.width}x${window.screen.height}`,
+          referrer: document.referrer,
+        },
+      });
+      // Approved users go straight in; everyone else waits for the admin.
+      await navigate(
+        result.canAccess ? { to: (next || "/") as "/" } : { to: "/eval/pending" },
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not record acceptance.");
     } finally {
@@ -64,7 +85,19 @@ function TermsPage() {
       <p className="mt-3 text-sm leading-6 text-cream/75">
         This environment is provided for internal evaluation of Runway and its capabilities.
       </p>
-      <label className="mt-6 flex items-start gap-3 text-sm leading-6 text-cream">
+      <label className="mt-6 block text-xs font-semibold tracking-wide text-cream/70">
+        Your full name
+        <input
+          type="text"
+          required
+          autoComplete="name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          className="mt-1 w-full rounded-xl border border-navy-2 bg-navy px-3 py-3 text-sm text-cream outline-none focus:border-gold"
+          placeholder="First and last name"
+        />
+      </label>
+      <label className="mt-5 flex items-start gap-3 text-sm leading-6 text-cream">
         <input
           type="checkbox"
           checked={agreed}
@@ -88,12 +121,15 @@ function TermsPage() {
         variant="gold"
         size="block"
         className="mt-6"
-        disabled={!agreed || busy}
+        disabled={!agreed || !name.trim() || busy}
         onClick={() => void accept()}
       >
         {busy ? "Saving…" : "Agree & Continue"}
       </Button>
       <p className="mt-4 text-xs leading-5 text-cream/55">
+        When you accept, we record your name, email, IP address, and device details.
+      </p>
+      <p className="mt-2 text-xs leading-5 text-cream/55">
         {EVAL_ACCEPTANCE_TEXT.replace("Runway Evaluation Terms.", "")}
         <Link to="/eval/agreement" className="text-gold underline underline-offset-4">
           Runway Evaluation Terms

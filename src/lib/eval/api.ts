@@ -61,12 +61,27 @@ export const verifyEvalCode = createServerFn({ method: "POST" })
   });
 
 export const acceptEvalTerms = createServerFn({ method: "POST" })
-  .inputValidator((data: { name?: string; organization?: string }) => data)
+  .inputValidator(
+    (data: {
+      name?: string;
+      organization?: string;
+      timeZone?: string;
+      language?: string;
+      screen?: string;
+      referrer?: string;
+    }) => data,
+  )
   .handler(async ({ data }) => {
     const { recordAcceptance } = await import("./access.server");
     return recordAcceptance({
       name: data.name?.trim() || null,
       organization: data.organization?.trim() || null,
+      context: {
+        timeZone: data.timeZone,
+        language: data.language,
+        screen: data.screen,
+        referrer: data.referrer,
+      },
     });
   });
 

@@ -12,6 +12,7 @@ import {
   type EvaluatorAccessStatus,
 } from "./config";
 import { newId, normalizeEmail, sha256Hex } from "./crypto";
+import { sendEvalEmail } from "./email.server";
 import { blankEvalCookie, cookieHasCurrentTerms, readEvalCookie, writeEvalCookie } from "./session-cookie.server";
 import {
   canAccessProtectedRunway,
@@ -116,7 +117,7 @@ export async function upsertEvaluator(input: {
   if (existing[0]) {
     const row = existing[0];
     const nextStatus =
-      row.access_status === "revoked"
+      row.access_status === "revoked" && !input.invited
         ? "revoked"
         : row.access_status === "active"
           ? "active"
@@ -312,16 +313,30 @@ export async function readEvalStatus(): Promise<EvalStatus> {
   const claims = await readEvalCookie();
   if (!claims) return empty;
   const acceptedCurrentTerms = cookieHasCurrentTerms(claims);
+  // The cookie only remembers the status at sign-in. Approvals and revocations
+  // happen later, so read the live status; fall back to the cookie if the
+  // database is unreachable.
+  let liveStatus: EvaluatorAccessStatus = claims.accessStatus;
+  let liveName: string | null = null;
+  try {
+    const live = await findEvaluatorByEmail(claims.email);
+    if (live) {
+      liveStatus = live.access_status;
+      liveName = live.name;
+    }
+  } catch (err) {
+    console.error("[eval] could not read live access status", err);
+  }
   return {
     enforced: true,
     authenticated: true,
     emailVerified: claims.verified,
     email: claims.email,
-    name: null,
+    name: liveName,
     organization: null,
     evaluatorId: claims.evaluatorId,
     userId: null,
-    accessStatus: claims.accessStatus,
+    accessStatus: liveStatus,
     acceptedCurrentTerms,
     acceptedVersion: claims.acceptedVersion,
     acceptedAt: null,
@@ -329,7 +344,7 @@ export async function readEvalStatus(): Promise<EvalStatus> {
     requiredVersion,
     canAccess: canAccessProtectedRunway({
       emailVerified: claims.verified,
-      accessStatus: claims.accessStatus,
+      accessStatus: liveStatus,
       acceptedCurrentTerms,
     }),
   };
@@ -353,9 +368,22 @@ export async function assertProtectedEvalAccess(): Promise<EvalStatus> {
   return status;
 }
 
+export type AcceptanceContext = {
+  timeZone?: string | null;
+  language?: string | null;
+  screen?: string | null;
+  referrer?: string | null;
+};
+
+function clip(value: string | null | undefined, max = 300): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
 export async function recordAcceptance(input: {
   name?: string | null;
   organization?: string | null;
+  context?: AcceptanceContext;
 }): Promise<EvalStatus> {
   const status = await readEvalStatus();
   if (!status.authenticated || !status.evaluatorId || !status.email) {
@@ -367,9 +395,8 @@ export async function recordAcceptance(input: {
   if (status.accessStatus === "revoked") {
     throw new EvalAccessError("Evaluation access revoked", 403);
   }
-  if (status.accessStatus !== "active") {
-    throw new EvalAccessError("Evaluation access is not active", 403);
-  }
+  // Anyone with a verified email may accept the terms. Whether they get in is
+  // decided separately by the admin (pending -> active).
 
   const claims = await readEvalCookie();
   if (!claims || claims.email !== status.email) {
@@ -380,16 +407,25 @@ export async function recordAcceptance(input: {
     acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
   });
 
+  const meta = requestMeta();
+  const acceptedAt = new Date().toISOString();
+  const acceptHeaders = getRequest()?.headers;
+  const context = {
+    language: clip(input.context?.language) ?? clip(acceptHeaders?.get("accept-language")),
+    referrer: clip(input.context?.referrer, 500),
+    timeZone: clip(input.context?.timeZone, 80),
+    screen: clip(input.context?.screen, 40),
+  };
+  const agreement = currentAgreement();
+  const displayName = clip(input.name) ?? status.name;
+
   try {
     await ensureAgreementSeeded();
-    const agreement = currentAgreement();
     const sql = await getSql();
     const seeded = await sql<{ sha256: string }>`
       select sha256 from evaluation_agreements where version = ${agreement.version} limit 1
     `;
     const hash = seeded[0]?.sha256 ?? agreement.sha256;
-    const meta = requestMeta();
-    const acceptedAt = new Date().toISOString();
 
     if (input.name || input.organization) {
       await sql`
@@ -407,7 +443,8 @@ export async function recordAcceptance(input: {
         id, user_id, evaluator_id, email, name, organization,
         agreement_type, agreement_version, agreement_effective_date,
         agreement_hash, acceptance_text, accepted_at, ip_address,
-        user_agent, acceptance_method, environment, account_status
+        user_agent, acceptance_method, environment, account_status,
+        accept_language, referrer, time_zone, screen
       ) values (
         ${newId("acc")},
         ${status.userId},
@@ -425,13 +462,111 @@ export async function recordAcceptance(input: {
         ${meta.userAgent},
         ${"clickwrap"},
         ${currentEnvironment()},
-        ${status.accessStatus}
+        ${status.accessStatus},
+        ${context.language},
+        ${context.referrer},
+        ${context.timeZone},
+        ${context.screen}
       )
     `;
   } catch (err) {
     console.error("[eval] could not persist acceptance row", err);
   }
-  return readEvalStatus();
+
+  await notifyAdminOfAcceptance({
+    email: status.email,
+    name: displayName,
+    organization: input.organization ?? status.organization,
+    accessStatus: status.accessStatus ?? "pending",
+    agreementName: agreement.name,
+    agreementVersion: agreement.version,
+    acceptedAt,
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+    ...context,
+  });
+  // The cookie written above is not visible to this request yet, so report the
+  // post-acceptance state explicitly instead of re-reading the stale cookie.
+  const fresh = await readEvalStatus();
+  return {
+    ...fresh,
+    acceptedCurrentTerms: true,
+    acceptedVersion: RUNWAY_EVALUATION_TERMS_VERSION,
+    canAccess: canAccessProtectedRunway({
+      emailVerified: fresh.emailVerified,
+      accessStatus: fresh.accessStatus ?? "pending",
+      acceptedCurrentTerms: true,
+    }),
+  };
+}
+
+function requestOriginFromHeaders(): string {
+  const headers = getRequest()?.headers;
+  const host = headers?.get("x-forwarded-host") ?? headers?.get("host");
+  if (!host) return "https://garagerunway.com";
+  return `${headers?.get("x-forwarded-proto") ?? "https"}://${host}`;
+}
+
+/**
+ * Emails the admin(s) one message per acceptance. A mail failure must never
+ * undo the acceptance, so it is only logged.
+ */
+async function notifyAdminOfAcceptance(info: {
+  email: string;
+  name: string | null;
+  organization: string | null;
+  accessStatus: EvaluatorAccessStatus;
+  agreementName: string;
+  agreementVersion: string;
+  acceptedAt: string;
+  ip: string | null;
+  userAgent: string | null;
+  language: string | null;
+  referrer: string | null;
+  timeZone: string | null;
+  screen: string | null;
+}): Promise<void> {
+  try {
+    const policy = readEvalPolicy();
+    const adminUrl = `${requestOriginFromHeaders()}/admin`;
+    const needsApproval = info.accessStatus !== "active";
+    const line = (label: string, value: string | null) => `${label}: ${value ?? "unknown"}`;
+    const text = [
+      needsApproval
+        ? "Someone accepted the Runway terms and is waiting for your approval."
+        : "An approved user accepted the Runway terms.",
+      "",
+      line("Name", info.name),
+      line("Email (verified by code)", info.email),
+      line("Organization", info.organization),
+      line("Status", info.accessStatus),
+      "",
+      line("Terms", `${info.agreementName} v${info.agreementVersion}`),
+      line("Accepted at (UTC)", info.acceptedAt),
+      line("Time zone", info.timeZone),
+      line("IP address", info.ip),
+      line("Device / browser", info.userAgent),
+      line("Language", info.language),
+      line("Screen", info.screen),
+      line("Came from", info.referrer),
+      "",
+      needsApproval ? `Approve or review: ${adminUrl}` : `Admin: ${adminUrl}`,
+    ].join("\n");
+    const subject = `${needsApproval ? "Approval needed" : "Terms accepted"}: ${
+      info.name ?? info.email
+    } (${info.email})`;
+    const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    for (const to of policy.adminEmails) {
+      await sendEvalEmail({
+        to,
+        subject,
+        text,
+        html: `<pre style="font:14px/1.5 monospace">${escaped}</pre>`,
+      });
+    }
+  } catch (err) {
+    console.error("[eval] could not email admin about acceptance", err);
+  }
 }
 
 export async function revokeEvaluator(email: string): Promise<void> {
@@ -506,7 +641,8 @@ export async function listAcceptances() {
     select
       id, email, name, organization, agreement_type, agreement_version,
       agreement_effective_date, agreement_hash, acceptance_text, accepted_at,
-      ip_address, acceptance_method, environment, account_status
+      ip_address, user_agent, accept_language, referrer, time_zone, screen,
+      acceptance_method, environment, account_status
     from legal_acceptances
     order by accepted_at desc
   `;

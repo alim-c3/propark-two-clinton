@@ -204,13 +204,11 @@ export function CurbPager({
         </p>
       </section>
       <section className="mt-4 rounded-2xl border border-gold bg-navy px-4 py-5 text-cream">
-        <p className="mt-1 font-display text-3xl text-gold sm:text-4xl">
+        <p className="font-display text-3xl text-gold sm:text-4xl">
           IF YOU ASK NOW
         </p>
         <p className="mt-2 text-xl text-cream">
-          {line.length === 0
-            ? "No cars in the queue"
-            : `${line.length} ${line.length === 1 ? "car" : "cars"} in the queue`}
+          {line.length ? placeLine(preview.place) : "You’re next in line"}
         </p>
         <p className="mt-1 text-xl text-cream">
           {line.length

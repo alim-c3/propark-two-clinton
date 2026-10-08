@@ -104,8 +104,8 @@ function Resident() {
     : `Your ${me.car} is downstairs in ${me.stall}${me.charge ? `, ${me.charge}%` : ""}.`;
 
   function go() {
-    const note = pullNote.trim();
-    const r = requestNow(note || undefined);
+    const parts = [pullNote.trim(), back ? `Expected back: ${back}.` : ""].filter(Boolean);
+    const r = requestNow(parts.join(" ") || undefined);
     toast[r.ok ? "success" : "error"](r.message);
     if (r.ok) {
       setConfirm(false);
@@ -152,6 +152,22 @@ function Resident() {
           </section>
         ) : null}
 
+        {!carOut ? (
+          <label className="mt-4 block rounded-2xl border-2 border-gold bg-white p-4">
+            <span className="font-display text-lg text-navy">Let us know when you’ll be back</span>
+            <select
+              value={backOptions.includes(back) ? back : ""}
+              onChange={(e) => setBack(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy"
+            >
+              <option value="">Pick a time</option>
+              {backOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
         <CurbPager tickets={tickets} staff={staff} mine={live?.type === "now" ? live : undefined} nested>
           {!live || live.type === "arrival" ? (
             !confirm ? (
@@ -165,6 +181,19 @@ function Resident() {
                   placeholder="Add an optional note, e.g. child seat, groceries…"
                   className="mt-3 w-full rounded-full border border-line bg-white px-4 py-3 text-sm text-navy placeholder:text-muted"
                 />
+                <label className="mt-3 block">
+                  <span className="text-sm font-semibold text-navy">Let us know when you’ll be back</span>
+                  <select
+                    value={backOptions.includes(back) ? back : ""}
+                    onChange={(e) => setBack(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-line bg-white px-3 py-3 text-base text-navy"
+                  >
+                    <option value="">Pick a time</option>
+                    {backOptions.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
                 <div className="mt-3 flex flex-col gap-2">
                   <Button variant="gold" size="block" onClick={go}>Yes — let’s take off</Button>
                   <Button variant="ghost" size="block" onClick={() => { setConfirm(false); setPullNote(""); }}>Cancel car request</Button>

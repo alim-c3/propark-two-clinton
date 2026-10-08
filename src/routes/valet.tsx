@@ -140,12 +140,14 @@ function Valet() {
       <div className={cn("mx-auto max-w-lg px-4 py-6", staff.you && action && "pb-28")}>
         <DemoBar tone="dark" />
         <p className="mt-4 text-[10px] font-bold tracking-[0.18em] text-gold">VALET RUNWAY · CLINTON PLACE</p>
-        <h1 className="mt-2 font-display text-3xl">
-          {!staff.you ? "Clock in. Then take the next car."
-            : parking ? "Park it. Green stall is yours."
-            : next ? next.blockedBy ? `Nest first. ${next.blockedBy} is in the way.` : next.car
-            : "Waiting on Get going."}
-        </h1>
+        {staff.you && next && !next.blockedBy && !parking ? null : (
+          <h1 className="mt-2 font-display text-3xl">
+            {!staff.you ? "Clock in. Then take the next car."
+              : parking ? "Park it. Green stall is yours."
+              : next?.blockedBy ? `Nest first. ${next.blockedBy} is in the way.`
+              : "Waiting on Get going."}
+          </h1>
+        )}
 
         {!staff.you ? (
           <section className="mt-5 overflow-hidden rounded-2xl border border-navy-2 bg-navy-2">

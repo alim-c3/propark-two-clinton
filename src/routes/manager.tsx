@@ -51,6 +51,20 @@ function nyDay(offset = 0) {
 
 const TODAY = FORECAST;
 const TOMORROW = [
+  { hour: "12a", pulls: 1, actual: 0 },
+  { hour: "1a", pulls: 0, actual: 0 },
+  { hour: "2a", pulls: 0, actual: 0 },
+  { hour: "3a", pulls: 0, actual: 0 },
+  { hour: "4a", pulls: 1, actual: 0 },
+  { hour: "5a", pulls: 4, actual: 0 },
+  { hour: "6a", pulls: 9, actual: 0 },
+  { hour: "7a", pulls: 24, actual: 0 },
+  { hour: "8a", pulls: 48, actual: 0 },
+  { hour: "9a", pulls: 18, actual: 0 },
+  { hour: "10a", pulls: 10, actual: 0 },
+  { hour: "11a", pulls: 8, actual: 0 },
+  { hour: "12p", pulls: 6, actual: 0 },
+  { hour: "1p", pulls: 5, actual: 0 },
   { hour: "2p", pulls: 5, actual: 0 },
   { hour: "3p", pulls: 7, actual: 0 },
   { hour: "4p", pulls: 11, actual: 0 },
@@ -59,10 +73,8 @@ const TOMORROW = [
   { hour: "7p", pulls: 6, actual: 0 },
   { hour: "8p", pulls: 3, actual: 0 },
   { hour: "9p", pulls: 2, actual: 0 },
-  { hour: "6a", pulls: 9, actual: 0 },
-  { hour: "7a", pulls: 24, actual: 0 },
-  { hour: "8a", pulls: 48, actual: 0 },
-  { hour: "9a", pulls: 18, actual: 0 },
+  { hour: "10p", pulls: 2, actual: 0 },
+  { hour: "11p", pulls: 1, actual: 0 },
 ];
 
 function CarsPerHour() {
@@ -95,8 +107,8 @@ function CarsPerHour() {
     <section id="forecast" className="rounded-2xl border border-line bg-white p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">CARS PER HOUR</p>
-          <h2 className="font-display text-xl">Demand vs crew capacity</h2>
+          <p className="font-display text-2xl text-navy">Cars per hour</p>
+          <h2 className="text-base text-muted">Demand vs crew capacity</h2>
           <p className="mt-1 text-sm text-muted">
             8a is the wave — 45 today, 48 tomorrow. Line is {valets} valet{valets === 1 ? "" : "s"} × 10 cars/hr.
           </p>
@@ -122,7 +134,7 @@ function CarsPerHour() {
             if (label) setPicked(label);
           }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
+            <XAxis dataKey="hour" interval={0} tick={{ fontSize: 9 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
             <Tooltip formatter={(value, name) => [value as number, name === "demand" ? "Forecast pulls" : name === "done" ? "Already staged" : "Crew capacity"]} />
             <Bar dataKey="demand" name="demand" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
@@ -238,7 +250,7 @@ function Manager() {
   }
 
   const stats: Array<{ k: string; v: string; s: string; tone?: "ok" | "danger" }> = [
-    ["ON THE FLOOR", String(onFloor), "Luis · Derrick · you if clocked"],
+    ["VALETS ON THE FLOOR", String(onFloor), "Luis · Derrick · you if clocked"],
     ["NEST NAMED", String(nested.length), nested[0] ? `${nested[0].blockedBy} in front of ${nested[0].plate}` : "Clear"],
     ["IN LINE", String(waiting.length), inbound.length ? `+ ${inbound.length} inbound` : "Now-requests"],
     ["REQUESTS NOW", String(requestsNow.length), Number.isFinite(oldestRequest) ? `Oldest waiting ${Math.max(0, Math.round((now - oldestRequest) / 60000))} min` : "None waiting"],
@@ -256,7 +268,7 @@ function Manager() {
         <div className="mt-4 overflow-hidden rounded-2xl bg-navy text-cream">
           <div className="grid md:grid-cols-2">
             <div className="p-6">
-              <p className="text-[10px] font-bold tracking-[0.18em] text-gold">CONTROL TOWER INSIGHT</p>
+              <p className="font-display text-2xl text-gold">Control Tower Insight</p>
               <h1 className="mt-2 font-display text-3xl">
                 {short ? `Will the ${parseInt(peak.hour, 10)}:00 wave get off the ground?` : "Next hour is covered"}
               </h1>
@@ -311,7 +323,7 @@ function Manager() {
         <div className="mt-4"><GarageMap hideSearch highlight={foundStall ?? waiting[0]?.stall ?? nested[0]?.stall ?? "A-01"} /></div>
 
         <section className="mt-4 rounded-2xl border border-line bg-white p-4">
-          <h2 className="font-display text-xl">Tonight’s restack</h2>
+          <h2 className="font-display text-2xl">Tonight’s restack</h2>
           <p className="mt-1 text-sm text-muted">Accept puts it on the valet board. Leave it stays put.</p>
           <div className="mt-4 flex flex-col gap-3">
             {RESTACK.map((r) => {
@@ -343,7 +355,7 @@ function Manager() {
         <div className="mt-4"><StreetCredBoard /></div>
 
         <section className="mt-4 rounded-2xl border border-line bg-white p-4">
-          <h2 className="font-display text-xl">Who leaves when — sample 14 days</h2>
+          <h2 className="font-display text-2xl">Who leaves when — sample 14 days</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FINGERPRINTS.map((r) => (
               <article key={r.unit} className="rounded-xl border border-line p-4">

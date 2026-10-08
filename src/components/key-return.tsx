@@ -49,8 +49,8 @@ export function KeyReturn({ tone = "dark", prominent = false }: { tone?: "light"
         dark ? "border-navy-2 bg-navy-2 text-cream" : "border-line bg-white text-navy",
       )}
     >
-      <p className="text-[10px] font-bold tracking-[0.16em] text-gold">
-        KEYS WENT UPSTAIRS
+      <p className={cn("font-display text-2xl", dark ? "text-gold" : "text-navy")}>
+        Keys went upstairs
       </p>
       <p className={cn("mt-1 text-xs", dark ? "text-cream/60" : "text-muted")}>
         Find the car — make, model, or plate. Don’t walk upstairs. Text + email
@@ -242,7 +242,7 @@ export function KeyReturn({ tone = "dark", prominent = false }: { tone?: "light"
 
       {history.length ? (
         <div className="mt-4">
-          <p className="text-[10px] font-bold tracking-[0.16em] text-gold">KEYS HISTORY</p>
+          <p className={cn("font-display text-xl", dark ? "text-gold" : "text-navy")}>Keys history</p>
           <ol className="mt-2 space-y-2">
             {history.map((p) => (
               <li key={p.id} className={cn("rounded-xl px-3 py-2 text-sm", dark ? "bg-navy" : "bg-cream")}>

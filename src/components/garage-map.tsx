@@ -253,7 +253,7 @@ export function GarageMap({
     <div className="space-y-4">
       {compact || hideSearch ? null : prominent ? (
         <section className={cn("rounded-2xl border-2 border-gold bg-white p-4 text-navy", dark && "border-gold bg-navy-2 text-cream")}>
-          <p className="text-sm font-bold tracking-[0.16em] text-navy">FIND A CAR</p>
+          <p className="font-display text-2xl text-navy">Find a car</p>
           <label className="relative mt-3 block">
             <Search className="pointer-events-none absolute top-5 left-4 size-5 text-navy" />
             <input

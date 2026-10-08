@@ -184,7 +184,7 @@ function Valet() {
               ) : null}
               {others.length ? (
                 <>
-                  <h2 className="font-display text-xl">After this</h2>
+                  <h2 className="font-display text-2xl">After this</h2>
                   <div className="flex flex-col gap-3">
                     {others.map((t) => {
                       const a = jobAction(t);

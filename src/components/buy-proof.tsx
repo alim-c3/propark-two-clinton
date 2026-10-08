@@ -54,7 +54,7 @@ export function BuyProof({ tone = "light" }: { tone?: "light" | "dark" }) {
       <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
         SAMPLE TOWER · LAST 14 DAYS
       </p>
-      <h2 className="mt-1 font-display text-xl">
+      <h2 className="mt-1 font-display text-2xl">
         SLA, labor back, nest named.
       </h2>
       <p className={cn("mt-1 text-sm", dark ? "text-cream/65" : "text-muted")}>

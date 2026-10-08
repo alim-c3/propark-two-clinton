@@ -253,7 +253,7 @@ function Resident() {
         ) : null}
 
         <div className="mt-4 rounded-2xl border-2 border-navy bg-white p-4">
-          <p className="font-display text-xl text-navy">Schedule a car request</p>
+          <p className="font-display text-2xl text-navy">Schedule a car request</p>
           <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-3 w-full rounded-xl border border-line bg-cream px-3 py-3 text-base text-navy" />
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Child seat, groceries…" className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm" />
           <Button className="mt-3" variant="gold" size="block" onClick={() => {
@@ -307,7 +307,7 @@ function Resident() {
             const r = schedule("arrival", when.replace("T", " "), note || "On the way in");
             toast[r.ok ? "success" : "error"](r.message);
           }}>I’m on my way in</Button>
-          <h2 className="font-display text-xl">Your Upcoming and Requests</h2>
+          <h2 className="font-display text-2xl">Your Upcoming and Requests</h2>
           <div className="flex flex-col gap-3">
             {mine.filter((t) => t.id !== live?.id && t.status !== "cancelled" && t.status !== "released").map((t) => (
               <TicketCard key={t.id} ticket={t} audience="resident" onCancel={t.status === "open" ? () => {

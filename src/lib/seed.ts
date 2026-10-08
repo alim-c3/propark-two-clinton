@@ -148,6 +148,20 @@ export const INITIAL_CHAT: ChatMsg[] = [
 ];
 
 export const FORECAST = [
+  { hour: "12a", pulls: 1, actual: 0 },
+  { hour: "1a", pulls: 0, actual: 0 },
+  { hour: "2a", pulls: 0, actual: 0 },
+  { hour: "3a", pulls: 0, actual: 0 },
+  { hour: "4a", pulls: 1, actual: 0 },
+  { hour: "5a", pulls: 3, actual: 0 },
+  { hour: "6a", pulls: 8, actual: 0 },
+  { hour: "7a", pulls: 22, actual: 0 },
+  { hour: "8a", pulls: 45, actual: 0 },
+  { hour: "9a", pulls: 16, actual: 0 },
+  { hour: "10a", pulls: 9, actual: 0 },
+  { hour: "11a", pulls: 7, actual: 0 },
+  { hour: "12p", pulls: 6, actual: 0 },
+  { hour: "1p", pulls: 5, actual: 0 },
   { hour: "2p", pulls: 4, actual: 3 },
   { hour: "3p", pulls: 6, actual: 5 },
   { hour: "4p", pulls: 10, actual: 8 },
@@ -156,10 +170,8 @@ export const FORECAST = [
   { hour: "7p", pulls: 7, actual: 0 },
   { hour: "8p", pulls: 4, actual: 0 },
   { hour: "9p", pulls: 2, actual: 0 },
-  { hour: "6a", pulls: 8, actual: 0 },
-  { hour: "7a", pulls: 22, actual: 0 },
-  { hour: "8a", pulls: 45, actual: 0 },
-  { hour: "9a", pulls: 16, actual: 0 },
+  { hour: "10p", pulls: 2, actual: 0 },
+  { hour: "11p", pulls: 1, actual: 0 },
 ];
 
 export const RESTACK: RestackMove[] = [

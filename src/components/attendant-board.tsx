@@ -153,7 +153,7 @@ export function AttendantBoard() {
   const rows = rollupFloor(punches, pulls, tickets, now || Date.now());
   return (
     <section>
-      <h2 className="font-display text-xl text-navy">The floor — today</h2>
+      <h2 className="font-display text-2xl text-navy">The floor — today</h2>
       <p className="mt-1 text-sm text-muted">
         Cars handed off, pace, and break time. Cars per hour uses on-duty minutes only —
         breaks don’t count.

@@ -15,9 +15,7 @@ export function StreetCredCard({ unit }: { unit: string }) {
 
   return (
     <section className="rounded-2xl border border-line bg-white p-4">
-      <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-        STREET CRED
-      </p>
+      <p className="font-display text-2xl text-navy">Street cred</p>
       <div className="mt-2 flex items-end justify-between gap-3">
         <div>
           <p className="font-display text-5xl tabular-nums text-navy">{score}</p>
@@ -81,10 +79,8 @@ export function StreetCredBoard() {
 
   return (
     <section className="rounded-2xl border border-line bg-white p-4">
-      <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">
-        STREET CRED · RESIDENTS
-      </p>
-      <h2 className="mt-1 font-display text-xl">Who shows up when they ask.</h2>
+      <p className="font-display text-2xl text-navy">Street cred</p>
+      <h2 className="mt-1 font-display text-2xl">Who shows up when they ask.</h2>
       <p className="mt-1 text-sm text-muted">
         Cleared get pre-staged. Grounded now-requests go last. Residents only
         see their own number.

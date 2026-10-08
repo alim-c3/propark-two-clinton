@@ -41,8 +41,8 @@ export function ValetChat({ tone = "dark" }: { tone?: "light" | "dark" }) {
         dark ? "border-navy-2 bg-navy-2 text-cream" : "border-line bg-white text-navy",
       )}
     >
-      <p className="text-[10px] font-bold tracking-[0.16em] text-gold">
-        FLOOR CHAT · VALETS ONLY
+      <p className={cn("font-display text-2xl", dark ? "text-gold" : "text-navy")}>
+        Floor chat
       </p>
       <p className={cn("mt-1 text-xs", dark ? "text-cream/60" : "text-muted")}>
         Luis, Ana, Derrick, you. Residents never see this.

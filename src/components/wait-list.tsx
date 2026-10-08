@@ -256,9 +256,9 @@ export function HostStand({
           : "border-line bg-white text-navy",
       )}
     >
-      <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.16em] text-gold">
+      <p className={cn("flex items-center gap-2 font-display text-2xl", dark ? "text-gold" : "text-navy")}>
         <LiveDot />
-        HOST STAND · CARS COMING
+        Host stand
       </p>
       <p className={cn("mt-1 text-xs", dark ? "text-cream/60" : "text-muted")}>
         Oldest now-request first. Claimed cars stay at the top until they hit the

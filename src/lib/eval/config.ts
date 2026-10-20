@@ -22,9 +22,7 @@ export const EVAL_OTP_WINDOW_MS = 15 * 60 * 1000;
 
 export const DEFAULT_ALLOWED_EMAILS = [
   "alim@c3inspire.com",
-  "gabriel.rojas@propark.com",
   "test@test.com",
-  "joseph.mattesi@propark.com",
 ] as const;
 
 export const DEFAULT_ADMIN_EMAILS = ["alim@c3inspire.com"] as const;

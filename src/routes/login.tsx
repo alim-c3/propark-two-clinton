@@ -37,12 +37,12 @@ function LoginPage() {
       await navigate({ to: "/eval/revoked" });
       return;
     }
-    if (input.accessStatus !== "active") {
-      await navigate({ to: "/eval/pending" });
-      return;
-    }
     if (!input.acceptedCurrentTerms) {
       await navigate({ to: "/eval/terms", search: { next: destination(next) } });
+      return;
+    }
+    if (input.accessStatus !== "active") {
+      await navigate({ to: "/eval/pending" });
       return;
     }
     await navigate({ to: destination(next) as "/" });

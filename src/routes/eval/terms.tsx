@@ -49,7 +49,11 @@ function TermsPage() {
     setBusy(true);
     setError(null);
     try {
-      await acceptEvalTerms({ data: {} });
+      const updated = await acceptEvalTerms({ data: {} });
+      if (updated.accessStatus !== "active") {
+        await navigate({ to: "/eval/pending" });
+        return;
+      }
       await navigate({ to: (next || "/") as "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not record acceptance.");

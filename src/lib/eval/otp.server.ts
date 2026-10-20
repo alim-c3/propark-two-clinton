@@ -8,10 +8,9 @@ import {
 } from "./config";
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
-import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, evaluatorHasCurrentTerms } from "./access.server";
-import { canSkipOtp, emailOnAllowlist, initialAccessStatus, readEvalPolicy } from "./policy";
+import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail } from "./access.server";
+import { initialAccessStatus, readEvalPolicy } from "./policy";
 import { writeEvalCookie } from "./session-cookie.server";
-import { RUNWAY_EVALUATION_TERMS_VERSION } from "./config";
 
 export class EvalOtpError extends Error {
   readonly status: number;
@@ -33,12 +32,8 @@ function hashOtp(email: string, code: string): string {
 export async function beginSignIn(emailRaw: string, _origin: string) {
   const email = normalizeEmail(emailRaw);
   const policy = readEvalPolicy();
-  if (!policy.openRegistration && !emailOnAllowlist(email, policy)) {
-    throw new EvalOtpError("This email is not on the evaluator list.", 403);
-  }
 
-  const accessStatus = initialAccessStatus({ email, invited: true, policy });
-  let acceptedCurrentTerms = false;
+  const accessStatus = initialAccessStatus({ email, invited: false, policy });
   let evaluatorId = newId("eval");
 
   try {
@@ -48,20 +43,11 @@ export async function beginSignIn(emailRaw: string, _origin: string) {
     }
     if (existing) {
       evaluatorId = existing.id;
-      acceptedCurrentTerms = await evaluatorHasCurrentTerms(email);
-      if (
-        !canSkipOtp({
-          emailVerified: existing.email_verified,
-          accessStatus: existing.access_status,
-        })
-      ) {
-        await upsertEvaluator({ email, invited: true, markVerified: true });
-      }
+      await upsertEvaluator({ email, markVerified: true });
       await createEvalSession(existing.id);
     } else {
       const evaluator = await upsertEvaluator({
         email,
-        invited: true,
         markVerified: true,
       });
       evaluatorId = evaluator.id;
@@ -72,11 +58,13 @@ export async function beginSignIn(emailRaw: string, _origin: string) {
     console.error("[eval] database unavailable; continuing with signed session", err);
   }
 
+  // Always start a fresh session without prior terms acceptance so every
+  // visit requires clicking Agree & Continue.
   await writeEvalCookie({
     email,
     verified: true,
     accessStatus,
-    acceptedVersion: acceptedCurrentTerms ? RUNWAY_EVALUATION_TERMS_VERSION : null,
+    acceptedVersion: null,
     evaluatorId,
   });
 
@@ -85,7 +73,7 @@ export async function beginSignIn(emailRaw: string, _origin: string) {
     method: "email" as const,
     email,
     accessStatus,
-    acceptedCurrentTerms,
+    acceptedCurrentTerms: false,
   };
 }
 

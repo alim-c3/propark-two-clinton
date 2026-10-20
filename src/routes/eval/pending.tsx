@@ -7,8 +7,8 @@ export const Route = createFileRoute("/eval/pending")({
       <EvalShell>
         <h1 className="mt-3 font-display text-3xl">Access pending</h1>
         <p className="mt-3 text-sm leading-6 text-cream/75">
-          Your email is verified. A Runway administrator still needs to approve evaluation access
-          for this address.
+          Thank you for accepting the Runway Evaluation Terms. You will receive an email when you
+          are approved for access to the evaluation demo.
         </p>
         <Link to="/login" className="mt-6 inline-block text-sm text-gold underline underline-offset-4">
           Use a different email

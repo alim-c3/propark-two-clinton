@@ -24,8 +24,8 @@ function Home() {
             Get going. We’ll help you take off.
           </h1>
           <p className="mt-4 max-w-xl text-base text-cream/90 sm:text-lg">
-            Enter your email to evaluate Runway. After you accept the terms,
-            Features, Resident, Valet, and Manager open for your session.
+            Enter your email to evaluate Runway. Accept the terms to continue.
+            Approved evaluators can then open Features, Resident, Valet, and Manager.
           </p>
           <HomeAccessForm />
         </div>
@@ -50,12 +50,12 @@ function HomeAccessForm() {
         await navigate({ to: "/eval/revoked" });
         return;
       }
-      if (result.accessStatus !== "active") {
-        await navigate({ to: "/eval/pending" });
-        return;
-      }
       if (!result.acceptedCurrentTerms) {
         await navigate({ to: "/eval/terms", search: { next: "/resident" } });
+        return;
+      }
+      if (result.accessStatus !== "active") {
+        await navigate({ to: "/eval/pending" });
         return;
       }
       await navigate({ to: "/resident" });

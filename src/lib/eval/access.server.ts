@@ -367,9 +367,7 @@ export async function recordAcceptance(input: {
   if (status.accessStatus === "revoked") {
     throw new EvalAccessError("Evaluation access revoked", 403);
   }
-  if (status.accessStatus !== "active") {
-    throw new EvalAccessError("Evaluation access is not active", 403);
-  }
+  // Pending / invited evaluators may still record acceptance; they cannot access protected routes until approved.
 
   const claims = await readEvalCookie();
   if (!claims || claims.email !== status.email) {

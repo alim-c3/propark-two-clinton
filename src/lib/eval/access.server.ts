@@ -546,7 +546,22 @@ export const LEDGER_OWNER_EMAIL = "alim@c3inspire.com";
 
 export async function listAcceptances() {
   const sql = await getSql();
-  return sql`
+  return sql<{
+    id: string;
+    email: string;
+    name: string | null;
+    organization: string | null;
+    agreement_type: string;
+    agreement_version: string;
+    agreement_effective_date: string;
+    agreement_hash: string;
+    acceptance_text: string;
+    accepted_at: string;
+    ip_address: string | null;
+    acceptance_method: string;
+    environment: string | null;
+    account_status: string | null;
+  }>`
     select
       id, email, name, organization, agreement_type, agreement_version,
       agreement_effective_date, agreement_hash, acceptance_text, accepted_at,

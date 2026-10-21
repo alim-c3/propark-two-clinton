@@ -5,6 +5,7 @@ import {
   EVAL_OTP_MAX_PER_EMAIL_WINDOW,
   EVAL_OTP_TTL_MS,
   EVAL_OTP_WINDOW_MS,
+  type EvaluatorAccessStatus,
 } from "./config";
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
@@ -28,7 +29,13 @@ function hashOtp(email: string, code: string): string {
   return sha256Hex(`${otpPepper()}:${normalizeEmail(email)}:${code}`);
 }
 
-export async function beginSignIn(emailRaw: string, _origin: string) {
+export async function beginSignIn(emailRaw: string, _origin: string): Promise<{
+  ok: true;
+  method: "email";
+  email: string;
+  accessStatus: EvaluatorAccessStatus;
+  acceptedCurrentTerms: boolean;
+}> {
   const email = normalizeEmail(emailRaw);
   const existing = await findEvaluatorByEmail(email);
   if (existing?.access_status === "revoked") {

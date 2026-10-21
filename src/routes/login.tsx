@@ -54,18 +54,7 @@ function LoginPage() {
     setError(null);
     try {
       const result = await startEvalSignIn({ data: { email } });
-      if (result.method === "email") {
-        await routeAfterAuth(result);
-        return;
-      }
-      setSent(true);
-      setNotice(
-        result.delivered
-          ? "Check your email for a 6-digit code."
-          : result.devCode
-            ? `Development code: ${result.devCode}`
-            : "A sign-in code was generated. If email delivery is not configured, check the server log.",
-      );
+      await routeAfterAuth(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not continue.");
     } finally {

@@ -571,7 +571,7 @@ export async function listAcceptances() {
   `;
 }
 
-export async function submitEvalRequest(emailRaw: string): Promise<void> {
+export async function submitEvalRequest(emailRaw: string): Promise<boolean> {
   const sql = await getSql();
   const email = normalizeEmail(emailRaw);
   const open = await sql<{ id: string }>`
@@ -579,12 +579,13 @@ export async function submitEvalRequest(emailRaw: string): Promise<void> {
     where email = ${email} and status = 'pending'
     limit 1
   `;
-  if (open[0]) return;
+  if (open[0]) return false;
   const meta = requestMeta();
   await sql`
     insert into demo_eval_requests (id, email, status, ip_address, user_agent)
     values (${newId("req")}, ${email}, 'pending', ${meta.ip}, ${meta.userAgent})
   `;
+  return true;
 }
 
 export async function listEvalRequests() {

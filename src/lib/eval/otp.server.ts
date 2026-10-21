@@ -71,7 +71,23 @@ export async function beginSignIn(emailRaw: string, _origin: string): Promise<{
     markVerified: true,
     accessStatus: "pending",
   });
-  await submitEvalRequest(email);
+  const created = await submitEvalRequest(email);
+  if (created) {
+    const notify = env("RUNWAY_EVAL_NOTIFY_EMAIL") ?? LEDGER_OWNER_EMAIL;
+    try {
+      await sendEvalEmail({
+        to: notify,
+        subject: `New evaluation request: ${email}`,
+        text: [
+          `${email} asked to evaluate Runway.`,
+          "",
+          "Open https://garagerunway.com/admin to approve, reject, or end it.",
+        ].join("\n"),
+      });
+    } catch (err) {
+      console.error("[eval] request notice failed", err);
+    }
+  }
   await writeEvalCookie({
     email,
     verified: true,

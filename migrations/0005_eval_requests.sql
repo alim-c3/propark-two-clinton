@@ -15,7 +15,7 @@ create table if not exists eval_requests (
 create index if not exists eval_requests_email_idx on eval_requests (email, requested_at desc);
 create index if not exists eval_requests_status_idx on eval_requests (status);
 
-insert into eval_requests (id, email, status, requested_at, decided_at)
+insert into eval_requests (id, email, status)
 select
   'backfill-' || id,
   email,
@@ -23,11 +23,6 @@ select
     when access_status in ('active', 'invited') then 'approved'
     when access_status = 'revoked' then 'rejected'
     else 'pending'
-  end,
-  created_at,
-  case
-    when access_status in ('active', 'invited', 'revoked') then updated_at
-    else null
   end
 from evaluators
 on conflict (id) do nothing;

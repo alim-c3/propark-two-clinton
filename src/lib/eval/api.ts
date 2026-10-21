@@ -88,17 +88,39 @@ export const getEvalAgreement = createServerFn({ method: "POST" }).handler(async
 });
 
 export const getAdminLedger = createServerFn({ method: "POST" }).handler(async () => {
-  const { LEDGER_OWNER_EMAIL, listAcceptances, listLogins, readEvalStatus } = await import(
-    "./access.server"
-  );
+  const { LEDGER_OWNER_EMAIL, listAcceptances, listEvalRequests, listLogins, readEvalStatus } =
+    await import("./access.server");
   const { normalizeEmail } = await import("./crypto");
   const status = await readEvalStatus();
   if (!status.email || normalizeEmail(status.email) !== LEDGER_OWNER_EMAIL) {
     throw new Error("Forbidden");
   }
-  const [logins, acceptances] = await Promise.all([listLogins(), listAcceptances()]);
-  return { logins, acceptances };
+  const [requests, logins, acceptances] = await Promise.all([
+    listEvalRequests(),
+    listLogins(),
+    listAcceptances(),
+  ]);
+  return { requests, logins, acceptances };
 });
+
+export const decideEvalRequest = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; decision: "approved" | "rejected" }) => data)
+  .handler(async ({ data }) => {
+    const { decideEvalRequest: decide } = await import("./access.server");
+    if (data.decision !== "approved" && data.decision !== "rejected") {
+      throw new Error("Choose approve or reject.");
+    }
+    await decide({ id: data.id, decision: data.decision });
+    return { ok: true };
+  });
+
+export const endEvalAccess = createServerFn({ method: "POST" })
+  .inputValidator((data: { email: string }) => data)
+  .handler(async ({ data }) => {
+    const { endEvaluation } = await import("./access.server");
+    await endEvaluation({ email: data.email });
+    return { ok: true };
+  });
 
 export const listEvalDirectory = createServerFn({ method: "POST" }).handler(async () => {
   const { readEvalStatus, listEvaluators, listAcceptances } = await import("./access.server");

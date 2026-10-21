@@ -31,4 +31,6 @@ export type EvaluatorAccessStatus =
   | "pending"
   | "invited"
   | "active"
+  | "rejected"
+  | "ended"
   | "revoked";

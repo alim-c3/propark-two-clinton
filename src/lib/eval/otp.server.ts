@@ -8,8 +8,7 @@ import {
 } from "./config";
 import { newId, normalizeEmail, randomOtpCode, sha256Hex } from "./crypto";
 import { otpEmailCopy, sendEvalEmail } from "./email.server";
-import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail } from "./access.server";
-import { initialAccessStatus, readEvalPolicy } from "./policy";
+import { requestMeta, upsertEvaluator, createEvalSession, findEvaluatorByEmail, submitEvalRequest, LEDGER_OWNER_EMAIL } from "./access.server";
 import { writeEvalCookie } from "./session-cookie.server";
 
 export class EvalOtpError extends Error {
@@ -31,48 +30,53 @@ function hashOtp(email: string, code: string): string {
 
 export async function beginSignIn(emailRaw: string, _origin: string) {
   const email = normalizeEmail(emailRaw);
-  const policy = readEvalPolicy();
-
-  const accessStatus = initialAccessStatus({ email, invited: false, policy });
-  let evaluatorId = newId("eval");
-
-  try {
-    const existing = await findEvaluatorByEmail(email);
-    if (existing?.access_status === "revoked") {
-      throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
-    }
-    if (existing) {
-      evaluatorId = existing.id;
-      await upsertEvaluator({ email, markVerified: true });
-      await createEvalSession(existing.id);
-    } else {
-      const evaluator = await upsertEvaluator({
-        email,
-        markVerified: true,
-      });
-      evaluatorId = evaluator.id;
-      await createEvalSession(evaluator.id);
-    }
-  } catch (err) {
-    if (err instanceof EvalOtpError) throw err;
-    console.error("[eval] database unavailable; continuing with signed session", err);
+  const existing = await findEvaluatorByEmail(email);
+  if (existing?.access_status === "revoked") {
+    throw new EvalOtpError("Evaluation access for this email has been revoked.", 403);
   }
 
-  // Always start a fresh session without prior terms acceptance so every
-  // visit requires clicking Agree & Continue.
+  const owner = email === LEDGER_OWNER_EMAIL;
+  if (owner || existing?.access_status === "active") {
+    const evaluator = await upsertEvaluator({
+      email,
+      markVerified: true,
+      accessStatus: "active",
+    });
+    await createEvalSession(evaluator.id);
+    await writeEvalCookie({
+      email,
+      verified: true,
+      accessStatus: "active",
+      acceptedVersion: null,
+      evaluatorId: evaluator.id,
+    });
+    return {
+      ok: true as const,
+      method: "email" as const,
+      email,
+      accessStatus: "active" as const,
+      acceptedCurrentTerms: false,
+    };
+  }
+
+  const evaluator = await upsertEvaluator({
+    email,
+    markVerified: true,
+    accessStatus: "pending",
+  });
+  await submitEvalRequest(email);
   await writeEvalCookie({
     email,
     verified: true,
-    accessStatus,
+    accessStatus: "pending",
     acceptedVersion: null,
-    evaluatorId,
+    evaluatorId: evaluator.id,
   });
-
   return {
     ok: true as const,
     method: "email" as const,
     email,
-    accessStatus,
+    accessStatus: "pending" as const,
     acceptedCurrentTerms: false,
   };
 }

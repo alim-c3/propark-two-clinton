@@ -102,6 +102,7 @@ export async function upsertEvaluator(input: {
   organization?: string | null;
   invited?: boolean;
   markVerified?: boolean;
+  accessStatus?: EvaluatorAccessStatus;
 }): Promise<EvaluatorRow> {
   const sql = await getSql();
   const policy = readEvalPolicy();
@@ -116,7 +117,8 @@ export async function upsertEvaluator(input: {
   if (existing[0]) {
     const row = existing[0];
     const nextStatus =
-      row.access_status === "revoked"
+      input.accessStatus ??
+      (row.access_status === "revoked"
         ? "revoked"
         : row.access_status === "active"
           ? "active"
@@ -124,7 +126,7 @@ export async function upsertEvaluator(input: {
               email,
               invited: Boolean(input.invited),
               policy,
-            });
+            }));
     const verified = row.email_verified || Boolean(input.markVerified);
     await sql`
       update evaluators
@@ -150,11 +152,13 @@ export async function upsertEvaluator(input: {
   }
 
   const id = newId("eval");
-  const status = initialAccessStatus({
-    email,
-    invited: Boolean(input.invited),
-    policy,
-  });
+  const status =
+    input.accessStatus ??
+    initialAccessStatus({
+      email,
+      invited: Boolean(input.invited),
+      policy,
+    });
   const verified = Boolean(input.markVerified);
   await sql`
     insert into evaluators (
@@ -328,6 +332,13 @@ export async function readEvalStatus(): Promise<EvalStatus> {
 
   const claims = await readEvalCookie();
   if (!claims) return empty;
+  let accessStatus = claims.accessStatus;
+  try {
+    const row = await findEvaluatorByEmail(claims.email);
+    if (row) accessStatus = row.access_status;
+  } catch (err) {
+    console.error("[eval] could not refresh access status", err);
+  }
   const acceptedCurrentTerms = cookieHasCurrentTerms(claims);
   return {
     enforced: true,
@@ -338,7 +349,7 @@ export async function readEvalStatus(): Promise<EvalStatus> {
     organization: null,
     evaluatorId: claims.evaluatorId,
     userId: null,
-    accessStatus: claims.accessStatus,
+    accessStatus,
     acceptedCurrentTerms,
     acceptedVersion: claims.acceptedVersion,
     acceptedAt: null,
@@ -346,7 +357,7 @@ export async function readEvalStatus(): Promise<EvalStatus> {
     requiredVersion,
     canAccess: canAccessProtectedRunway({
       emailVerified: claims.verified,
-      accessStatus: claims.accessStatus,
+      accessStatus,
       acceptedCurrentTerms,
     }),
   };
@@ -543,4 +554,124 @@ export async function listAcceptances() {
     from legal_acceptances
     order by accepted_at desc
   `;
+}
+
+export async function submitEvalRequest(emailRaw: string): Promise<void> {
+  const sql = await getSql();
+  const email = normalizeEmail(emailRaw);
+  const open = await sql<{ id: string }>`
+    select id from eval_requests
+    where email = ${email} and status = 'pending'
+    limit 1
+  `;
+  if (open[0]) return;
+  const meta = requestMeta();
+  await sql`
+    insert into eval_requests (id, email, status, ip_address, user_agent)
+    values (${newId("req")}, ${email}, 'pending', ${meta.ip}, ${meta.userAgent})
+  `;
+}
+
+export async function listEvalRequests() {
+  const sql = await getSql();
+  return sql<{
+    id: string;
+    email: string;
+    status: string;
+    requested_at: string;
+    decided_at: string | null;
+    decided_by: string | null;
+  }>`
+    select id, email, status, requested_at, decided_at, decided_by
+    from eval_requests
+    order by requested_at desc
+  `;
+}
+
+async function requireLedgerOwner(): Promise<string> {
+  const status = await readEvalStatus();
+  if (!status.email || normalizeEmail(status.email) !== LEDGER_OWNER_EMAIL) {
+    throw new EvalAccessError("Forbidden", 403);
+  }
+  return status.email;
+}
+
+export async function decideEvalRequest(input: {
+  id: string;
+  decision: "approved" | "rejected";
+}): Promise<void> {
+  const decidedBy = await requireLedgerOwner();
+  const sql = await getSql();
+  const rows = await sql<{ id: string; email: string; status: string }>`
+    select id, email, status from eval_requests where id = ${input.id} limit 1
+  `;
+  const row = rows[0];
+  if (!row || row.status !== "pending") {
+    throw new EvalAccessError("That request is no longer pending.", 409);
+  }
+  await sql`
+    update eval_requests
+    set status = ${input.decision}, decided_at = now(), decided_by = ${decidedBy}
+    where id = ${row.id}
+  `;
+  if (input.decision === "approved") {
+    await sql`
+      update evaluators
+      set access_status = 'active', updated_at = now()
+      where email = ${row.email}
+    `;
+    return;
+  }
+  await sql`
+    update evaluators
+    set access_status = 'rejected', updated_at = now()
+    where email = ${row.email}
+  `;
+  await sql`
+    update eval_sessions
+    set revoked_at = now()
+    where revoked_at is null
+      and evaluator_id in (select id from evaluators where email = ${row.email})
+  `;
+}
+
+export async function endEvaluation(input: { email: string }): Promise<void> {
+  const endedBy = await requireLedgerOwner();
+  const email = normalizeEmail(input.email);
+  if (email === LEDGER_OWNER_EMAIL) {
+    throw new EvalAccessError("That evaluation cannot be ended.", 400);
+  }
+  const sql = await getSql();
+  await sql`
+    update evaluators
+    set access_status = 'ended', updated_at = now()
+    where email = ${email}
+  `;
+  await sql`
+    update eval_sessions
+    set revoked_at = now()
+    where revoked_at is null
+      and evaluator_id in (select id from evaluators where email = ${email})
+  `;
+  const ended = await sql<{ id: string }>`
+    update eval_requests
+    set status = 'ended', decided_at = now(), decided_by = ${endedBy}
+    where email = ${email} and status = 'approved'
+    returning id
+  `;
+  if (!ended[0]) {
+    const meta = requestMeta();
+    await sql`
+      insert into eval_requests (id, email, status, decided_at, decided_by, ip_address, user_agent)
+      values (
+        ${newId("req")},
+        ${email},
+        'ended',
+        now(),
+        ${endedBy},
+        ${meta.ip},
+        ${meta.userAgent}
+      )
+    `;
+  }
 }

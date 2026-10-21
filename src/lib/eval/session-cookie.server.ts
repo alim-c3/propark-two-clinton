@@ -68,9 +68,11 @@ export async function readEvalCookie(): Promise<EvalSessionClaims | null> {
       payload.accessStatus === "revoked" ||
       payload.accessStatus === "pending" ||
       payload.accessStatus === "invited" ||
-      payload.accessStatus === "active"
+      payload.accessStatus === "active" ||
+      payload.accessStatus === "rejected" ||
+      payload.accessStatus === "ended"
         ? payload.accessStatus
-        : "active";
+        : "pending";
     return {
       email,
       verified: payload.verified === true,

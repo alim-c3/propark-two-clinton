@@ -24,7 +24,7 @@ function Home() {
             Get going. We’ll help you take off.
           </h1>
           <p className="mt-4 max-w-xl text-base text-cream/90 sm:text-lg">
-            Enter your email to evaluate Runway. Accept the terms to continue.
+            Enter your email to evaluate Runway.
             Approved evaluators can then open Features, Resident, Valet, and Manager.
           </p>
           <HomeAccessForm />

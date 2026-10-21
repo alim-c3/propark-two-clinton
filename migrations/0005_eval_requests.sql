@@ -4,13 +4,14 @@
 create table if not exists eval_requests (
   id text primary key,
   email text not null,
-  status text not null,
-  requested_at timestamptz not null default now(),
-  decided_at timestamptz,
-  decided_by text,
-  ip_address text,
-  user_agent text
+  status text not null
 );
+
+alter table eval_requests add column if not exists requested_at timestamptz not null default now();
+alter table eval_requests add column if not exists decided_at timestamptz;
+alter table eval_requests add column if not exists decided_by text;
+alter table eval_requests add column if not exists ip_address text;
+alter table eval_requests add column if not exists user_agent text;
 
 create index if not exists eval_requests_email_idx on eval_requests (email, requested_at desc);
 create index if not exists eval_requests_status_idx on eval_requests (status);
@@ -25,4 +26,5 @@ select
     else 'pending'
   end
 from evaluators
+where email is not null
 on conflict (id) do nothing;

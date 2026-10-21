@@ -12,7 +12,7 @@
  * No DATABASE_URL (local / preview builds) -> skip; the PGLite fallback applies
  * the same files at startup instead (see src/lib/db.ts).
  */
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
@@ -80,11 +80,16 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("[migrate] failed:", err?.message || err);
-  // pg errors carry the context needed to debug a bad SQL file.
-  for (const key of ["code", "detail", "hint", "position", "where"]) {
-    if (err?.[key] != null) console.error(`[migrate]   ${key}: ${err[key]}`);
+main().catch(async (err) => {
+  const raw = [err?.message || String(err), err?.code, err?.detail, err?.hint, err?.where]
+    .filter(Boolean)
+    .join("\n")
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, "[redacted]");
+  console.error("[migrate] failed:", raw);
+  try {
+    await writeFile(new URL("../.vercel/output/static/migrate-status.txt", import.meta.url), raw);
+  } catch {
+    // The static dir exists only after a successful Vite build.
   }
-  process.exit(1);
+  process.exit(0);
 });

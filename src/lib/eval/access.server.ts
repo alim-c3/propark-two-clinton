@@ -575,14 +575,14 @@ export async function submitEvalRequest(emailRaw: string): Promise<void> {
   const sql = await getSql();
   const email = normalizeEmail(emailRaw);
   const open = await sql<{ id: string }>`
-    select id from eval_requests
+    select id from demo_eval_requests
     where email = ${email} and status = 'pending'
     limit 1
   `;
   if (open[0]) return;
   const meta = requestMeta();
   await sql`
-    insert into eval_requests (id, email, status, ip_address, user_agent)
+    insert into demo_eval_requests (id, email, status, ip_address, user_agent)
     values (${newId("req")}, ${email}, 'pending', ${meta.ip}, ${meta.userAgent})
   `;
 }
@@ -598,7 +598,7 @@ export async function listEvalRequests() {
     decided_by: string | null;
   }>`
     select id, email, status, requested_at, decided_at, decided_by
-    from eval_requests
+    from demo_eval_requests
     order by requested_at desc
   `;
 }
@@ -618,14 +618,14 @@ export async function decideEvalRequest(input: {
   const decidedBy = await requireLedgerOwner();
   const sql = await getSql();
   const rows = await sql<{ id: string; email: string; status: string }>`
-    select id, email, status from eval_requests where id = ${input.id} limit 1
+    select id, email, status from demo_eval_requests where id = ${input.id} limit 1
   `;
   const row = rows[0];
   if (!row || row.status !== "pending") {
     throw new EvalAccessError("That request is no longer pending.", 409);
   }
   await sql`
-    update eval_requests
+    update demo_eval_requests
     set status = ${input.decision}, decided_at = now(), decided_by = ${decidedBy}
     where id = ${row.id}
   `;
@@ -669,7 +669,7 @@ export async function endEvaluation(input: { email: string }): Promise<void> {
       and evaluator_id in (select id from evaluators where email = ${email})
   `;
   const ended = await sql<{ id: string }>`
-    update eval_requests
+    update demo_eval_requests
     set status = 'ended', decided_at = now(), decided_by = ${endedBy}
     where email = ${email} and status = 'approved'
     returning id
@@ -677,7 +677,7 @@ export async function endEvaluation(input: { email: string }): Promise<void> {
   if (!ended[0]) {
     const meta = requestMeta();
     await sql`
-      insert into eval_requests (id, email, status, decided_at, decided_by, ip_address, user_agent)
+      insert into demo_eval_requests (id, email, status, decided_at, decided_by, ip_address, user_agent)
       values (
         ${newId("req")},
         ${email},

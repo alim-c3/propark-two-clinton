@@ -197,7 +197,7 @@ export async function evaluatorHasCurrentTerms(email: string): Promise<boolean> 
   return Boolean(acceptance);
 }
 
-export async function createEvalSession(evaluatorId: string): Promise<string> {
+export async function createEvalSession(evaluatorId: string, method = "email"): Promise<string> {
   const sql = await getSql();
   const sessionId = newId("sess");
   const raw = newId("tok");
@@ -221,6 +221,23 @@ export async function createEvalSession(evaluatorId: string): Promise<string> {
     set last_login_at = now(), updated_at = now()
     where id = ${evaluatorId}
   `;
+  const people = await sql<{ email: string }>`
+    select email from evaluators where id = ${evaluatorId} limit 1
+  `;
+  const email = people[0]?.email;
+  if (email) {
+    await sql`
+      insert into eval_logins (id, evaluator_id, email, ip_address, user_agent, method)
+      values (
+        ${newId("login")},
+        ${evaluatorId},
+        ${email},
+        ${meta.ip},
+        ${meta.userAgent},
+        ${method}
+      )
+    `;
+  }
   const jwt = await new SignJWT({ sid: sessionId, eid: evaluatorId })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(evaluatorId)
@@ -497,6 +514,24 @@ export async function listEvaluators() {
     order by e.created_at desc
   `;
 }
+
+export async function listLogins() {
+  const sql = await getSql();
+  return sql<{
+    id: string;
+    email: string;
+    logged_in_at: string;
+    ip_address: string | null;
+    user_agent: string | null;
+    method: string;
+  }>`
+    select id, email, logged_in_at, ip_address, user_agent, method
+    from eval_logins
+    order by logged_in_at desc
+  `;
+}
+
+export const LEDGER_OWNER_EMAIL = "alim@c3inspire.com";
 
 export async function listAcceptances() {
   const sql = await getSql();

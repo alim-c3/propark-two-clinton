@@ -16,6 +16,7 @@ import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as ResidentRouteImport } from './routes/resident'
 import { Route as ValetRouteImport } from './routes/valet'
 import { Route as AdminEvaluatorsRouteImport } from './routes/admin/evaluators'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as EvalAgreementRouteImport } from './routes/eval/agreement'
 import { Route as EvalPendingRouteImport } from './routes/eval/pending'
 import { Route as EvalRevokedRouteImport } from './routes/eval/revoked'
@@ -57,6 +58,11 @@ const AdminEvaluatorsRoute = AdminEvaluatorsRouteImport.update({
   path: '/admin/evaluators',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EvalAgreementRoute = EvalAgreementRouteImport.update({
   id: '/eval/agreement',
   path: '/eval/agreement',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
+  '/admin': typeof AdminIndexRoute
   '/eval/agreement': typeof EvalAgreementRoute
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
+  '/admin': typeof AdminIndexRoute
   '/eval/agreement': typeof EvalAgreementRoute
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
+  '/admin': typeof AdminIndexRoute
   '/eval/agreement': typeof EvalAgreementRoute
   '/eval/pending': typeof EvalPendingRoute
   '/eval/revoked': typeof EvalRevokedRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
+    | '/admin'
     | '/eval/agreement'
     | '/eval/pending'
     | '/eval/revoked'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
+    | '/admin'
     | '/eval/agreement'
     | '/eval/pending'
     | '/eval/revoked'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
+    | '/admin'
     | '/eval/agreement'
     | '/eval/pending'
     | '/eval/revoked'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   ResidentRoute: typeof ResidentRoute
   ValetRoute: typeof ValetRoute
   AdminEvaluatorsRoute: typeof AdminEvaluatorsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   EvalAgreementRoute: typeof EvalAgreementRoute
   EvalPendingRoute: typeof EvalPendingRoute
   EvalRevokedRoute: typeof EvalRevokedRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEvaluatorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/eval/agreement': {
       id: '/eval/agreement'
       path: '/eval/agreement'
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResidentRoute: ResidentRoute,
   ValetRoute: ValetRoute,
   AdminEvaluatorsRoute: AdminEvaluatorsRoute,
+  AdminIndexRoute: AdminIndexRoute,
   EvalAgreementRoute: EvalAgreementRoute,
   EvalPendingRoute: EvalPendingRoute,
   EvalRevokedRoute: EvalRevokedRoute,

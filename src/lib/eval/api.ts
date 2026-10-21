@@ -87,6 +87,19 @@ export const getEvalAgreement = createServerFn({ method: "POST" }).handler(async
   return currentAgreement();
 });
 
+export const getAdminLedger = createServerFn({ method: "POST" }).handler(async () => {
+  const { LEDGER_OWNER_EMAIL, listAcceptances, listLogins, readEvalStatus } = await import(
+    "./access.server"
+  );
+  const { normalizeEmail } = await import("./crypto");
+  const status = await readEvalStatus();
+  if (!status.email || normalizeEmail(status.email) !== LEDGER_OWNER_EMAIL) {
+    throw new Error("Forbidden");
+  }
+  const [logins, acceptances] = await Promise.all([listLogins(), listAcceptances()]);
+  return { logins, acceptances };
+});
+
 export const listEvalDirectory = createServerFn({ method: "POST" }).handler(async () => {
   const { readEvalStatus, listEvaluators, listAcceptances } = await import("./access.server");
   const status = await readEvalStatus();

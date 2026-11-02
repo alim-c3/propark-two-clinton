@@ -132,16 +132,16 @@ const SEATS = [
       {
         h: "The book",
         items: [
-          "Health, occupancy, minutes to the curb, and cars/hr for every garage",
-          "Now, today, or the last 7 days — same board",
-          "Only off target, when you don’t want the quiet ones",
+          "Red, yellow, or green the moment the book opens",
+          "Full, wait, valets, and who’s waiting — on the card",
+          "Open a garage for the floor. The day starts at 5a",
         ],
       },
       {
         h: "The call",
         items: [
           "360 Huguenot is short at 8a. One Clinton Park can give up a valet.",
-          "Stage the move and the health scores move with it",
+          "Stage the move and the card changes color",
           "Two Clinton stays on the line — don’t rob it",
         ],
       },

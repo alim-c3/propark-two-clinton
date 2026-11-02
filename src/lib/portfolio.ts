@@ -158,7 +158,7 @@ export function portfolioCall(range: RangeKey, window: WindowKey): Call {
 }
 
 const day = (rows: number[]): { hour: string; pulls: number }[] => {
-  const labels = ["6a", "7a", "8a", "9a", "10a", "11a", "12p", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p"];
+  const labels = ["5a", "6a", "7a", "8a", "9a", "10a", "11a", "12p", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p", "10p", "11p"];
   return labels.map((hour, i) => ({ hour, pulls: rows[i] ?? 0 }));
 };
 
@@ -171,7 +171,7 @@ export const DEMO_GARAGES: Garage[] = [
     sla: 10,
     yield: 168,
     zones: { hot: 92, warm: 84, cold: 71, stack: 66 },
-    hourly: day([8, 22, 45, 16, 9, 7, 6, 5, 4, 6, 10, 14, 12, 7, 4]),
+    hourly: day([3, 8, 22, 45, 16, 9, 7, 6, 5, 4, 6, 10, 14, 12, 7, 4, 2, 2, 1]),
     cred: [
       { unit: "702", score: 94, note: "On time. Standing Thursday is clean." },
       { unit: "1512", score: 41, note: "Two no-shows this month. Requests wait." },
@@ -196,7 +196,7 @@ export const DEMO_GARAGES: Garage[] = [
     sla: 10,
     yield: 121,
     zones: { hot: 70, warm: 61, cold: 48, stack: 22 },
-    hourly: day([2, 8, 14, 9, 6, 4, 3, 3, 3, 4, 6, 8, 6, 3, 2]),
+    hourly: day([1, 2, 8, 14, 9, 6, 4, 3, 3, 3, 4, 6, 8, 6, 3, 2, 1, 1, 0]),
     cred: [{ unit: "814", score: 88, note: "Steady. No cancels this week." }],
     notes: [{ when: "Today", text: "No incidents this shift." }],
     fit: "Warm row can take 11 more cars without touching a stacker.",
@@ -216,7 +216,7 @@ export const DEMO_GARAGES: Garage[] = [
     sla: 10,
     yield: 204,
     zones: { hot: 100, warm: 96, cold: 88, stack: 100 },
-    hourly: day([3, 12, 26, 11, 5, 3, 2, 2, 3, 5, 9, 16, 11, 4, 2]),
+    hourly: day([2, 3, 12, 26, 11, 5, 3, 2, 2, 3, 5, 9, 16, 11, 4, 2, 1, 1, 0]),
     cred: [{ unit: "1902", score: 38, note: "Cancels inside 5 min. Pulls start, then die." }],
     notes: [
       { when: "7:51a", text: "Lower deck blocked. Retrieval ran 19 min." },

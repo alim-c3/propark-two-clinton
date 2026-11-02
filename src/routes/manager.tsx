@@ -87,7 +87,7 @@ function CarsPerHour() {
   const [picked, setPicked] = useState("8a");
 
   const rows = useMemo(() => {
-    const src = day === "today" ? TODAY : TOMORROW;
+    const src = (day === "today" ? TODAY : TOMORROW).filter((r) => hourNum(r.hour) >= 5);
     const cap = valets * CARS_PER_VALET_HR;
     return src.map((r) => ({
       ...r,
@@ -110,7 +110,7 @@ function CarsPerHour() {
           <p className="font-display text-2xl text-navy">Cars per hour</p>
           <h2 className="text-base text-muted">Demand vs crew capacity</h2>
           <p className="mt-1 text-sm text-muted">
-            8a is the wave — 45 today, 48 tomorrow. Line is {valets} valet{valets === 1 ? "" : "s"} × 10 cars/hr.
+            Day starts at 5a. 8a is the wave — 45 today, 48 tomorrow. Line is {valets} valet{valets === 1 ? "" : "s"} × 10 cars/hr.
           </p>
         </div>
         <div className="flex gap-2">

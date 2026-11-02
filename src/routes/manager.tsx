@@ -1,6 +1,6 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { enforceEvalNavigation } from "@/lib/eval/guard";
 import {
   Bar,
@@ -295,6 +295,12 @@ function Manager() {
       <Chrome />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <DemoBar />
+        <p className="mt-3 text-sm">
+          <Link to="/regional" className="font-semibold underline">
+            Regional view
+          </Link>
+          <span className="text-muted"> — every garage on one board.</span>
+        </p>
         <div className="mt-4 overflow-hidden rounded-2xl bg-navy text-cream">
           <div className="grid md:grid-cols-2">
             <div className="p-6">

@@ -25,7 +25,7 @@ function Home() {
           </h1>
           <p className="mt-4 max-w-xl text-base text-cream/90 sm:text-lg">
             Enter your email to evaluate Runway.
-            Approved evaluators can then open Features, Resident, Valet, and Manager.
+            Approved evaluators can then open Features, Resident, Valet, Manager, and Regional.
           </p>
           <HomeAccessForm />
         </div>

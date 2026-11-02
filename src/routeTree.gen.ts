@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManagerRouteImport } from './routes/manager'
+import { Route as RegionalRouteImport } from './routes/regional'
 import { Route as ResidentRouteImport } from './routes/resident'
 import { Route as ValetRouteImport } from './routes/valet'
 import { Route as AdminEvaluatorsRouteImport } from './routes/admin/evaluators'
@@ -41,6 +42,11 @@ const LoginRoute = LoginRouteImport.update({
 const ManagerRoute = ManagerRouteImport.update({
   id: '/manager',
   path: '/manager',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegionalRoute = RegionalRouteImport.update({
+  id: '/regional',
+  path: '/regional',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResidentRoute = ResidentRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/regional': typeof RegionalRoute
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/regional': typeof RegionalRoute
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/regional': typeof RegionalRoute
   '/resident': typeof ResidentRoute
   '/valet': typeof ValetRoute
   '/admin/evaluators': typeof AdminEvaluatorsRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/manager'
+    | '/regional'
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/manager'
+    | '/regional'
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/manager'
+    | '/regional'
     | '/resident'
     | '/valet'
     | '/admin/evaluators'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   LoginRoute: typeof LoginRoute
   ManagerRoute: typeof ManagerRoute
+  RegionalRoute: typeof RegionalRoute
   ResidentRoute: typeof ResidentRoute
   ValetRoute: typeof ValetRoute
   AdminEvaluatorsRoute: typeof AdminEvaluatorsRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/manager'
       fullPath: '/manager'
       preLoaderRoute: typeof ManagerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regional': {
+      id: '/regional'
+      path: '/regional'
+      fullPath: '/regional'
+      preLoaderRoute: typeof RegionalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resident': {
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   LoginRoute: LoginRoute,
   ManagerRoute: ManagerRoute,
+  RegionalRoute: RegionalRoute,
   ResidentRoute: ResidentRoute,
   ValetRoute: ValetRoute,
   AdminEvaluatorsRoute: AdminEvaluatorsRoute,

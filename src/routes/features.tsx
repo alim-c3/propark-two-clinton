@@ -120,6 +120,41 @@ const SEATS = [
       },
     ],
   },
+  {
+    id: "regional",
+    kicker: "Regional",
+    title: "Three garages. One call.",
+    promise: "See who is short, who is fat, and move a valet before the wave.",
+    demo: "/regional" as const,
+    demoLabel: "Open regional",
+    img: "/flow-manager.jpg",
+    groups: [
+      {
+        h: "The book",
+        items: [
+          "Health, occupancy, p90, and cars/hr for every garage",
+          "Now, today, or the last 7 days — same board",
+          "Only off target, when you don’t want the quiet ones",
+        ],
+      },
+      {
+        h: "The call",
+        items: [
+          "Hudson is short at 8a. The Halstead can give up a valet.",
+          "Stage the move and the health scores move with it",
+          "Two Clinton stays on the line — don’t rob it",
+        ],
+      },
+      {
+        h: "Under the number",
+        items: [
+          "Hot, warm, cold, stack — full stack is a red bar",
+          "Street cred and the exception that caused the wait",
+          "Sample yield per stall. Hudson earns more and still misses the curb",
+        ],
+      },
+    ],
+  },
 ];
 
 function Features() {
@@ -133,7 +168,7 @@ function Features() {
             FEATURE LIST
           </p>
           <h1 className="mt-2 max-w-2xl font-display text-4xl sm:text-5xl">
-            Residents. Valets. Managers.
+            Residents. Valets. Managers. Regional.
           </h1>
           <p className="mt-3 max-w-xl text-sm text-cream/75">
             Everything in the live tower, by seat. Jump a section, or open the

@@ -11,6 +11,7 @@ const ROLES = [
   { to: "/resident", label: "Resident" },
   { to: "/valet", label: "Valet" },
   { to: "/manager", label: "Manager" },
+  { to: "/regional", label: "Regional" },
 ] as const;
 
 export function Chrome({

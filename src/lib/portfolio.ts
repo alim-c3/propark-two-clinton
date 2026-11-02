@@ -128,31 +128,31 @@ export function portfolioCall(range: RangeKey, window: WindowKey): Call {
   if (range === "week") {
     return {
       action: "move",
-      title: "360 Huguenot has missed the 8a line four mornings this week.",
-      body: "Typical 8a is 24 pulls on 2 valets (20 cars/hr). One Clinton Park’s morning peak is 13 on 3 valets. Move one valet to 360 Huguenot before 7:30a. Two Clinton holds four — 42 against 40, on the line, not the miss.",
-      done: "Staged for the demo. 360 Huguenot can take 30 cars an hour. One Clinton Park still covers a 13-car peak.",
+      title: "Two Clinton Park has missed the 8a line four mornings this week.",
+      body: "Typical 8a is 42 pulls on 3 valets (30 cars/hr). One Clinton Park’s morning peak is 13 on 3 valets. Move one valet to Two Clinton before 7:30a. 360 Huguenot is covered — leave that crew.",
+      done: "Staged for the demo. Two Clinton can take 40 cars an hour. One Clinton Park still covers a 13-car peak.",
     };
   }
   if (range === "today" || (range === "now" && window === "morning")) {
     return {
       action: "move",
-      title: "Move 1 valet from One Clinton Park to 360 Huguenot before 8a.",
-      body: "360 Huguenot peaks at 26 pulls with 2 valets (20 cars/hr). One Clinton Park peaks at 14 and can give one up. Two Clinton is on the line at 45 vs 40 — leave those four where they are.",
-      done: "Staged for the demo. 360 Huguenot can take 30 cars an hour. One Clinton Park still covers 14. Two Clinton stays at four. Nothing was sent to a live crew.",
+      title: "Move 1 valet from One Clinton Park to Two Clinton Park before 8a.",
+      body: "Two Clinton peaks at 45 pulls with 3 valets (30 cars/hr). One Clinton Park peaks at 14 and can give one up. 360 Huguenot covers 26 on 3 — leave them.",
+      done: "Staged for the demo. Two Clinton can take 40 cars an hour. One Clinton Park still covers 14. 360 Huguenot stays at three. Nothing was sent to a live crew.",
     };
   }
   if (window === "evening") {
     return {
       action: "hold",
-      title: "Evening return is covered if 360 Huguenot keeps the morning add.",
-      body: "5p is 16 pulls at 360 Huguenot (20 cars/hr on 2, 30 if you moved someone). Two Clinton’s 5p is 14 against 40. Don’t pull a valet off Two Clinton for this.",
-      done: "Crews stay. 360 Huguenot’s 5p is inside capacity.",
+      title: "Evening return is covered if Two Clinton keeps the morning add.",
+      body: "5p is 18 pulls at Two Clinton. Four valets clear it at 40 cars an hour. Don’t pull that person back.",
+      done: "Crews stay. Two Clinton’s 5p is inside capacity.",
     };
   }
   return {
     action: "hold",
-    title: "Leave the crews. 360 Huguenot’s stack is the problem, not the headcount.",
-    body: "Midday pulls are under capacity at all three. 360 Huguenot is about 95% full and the stack is full. Next park-down stays off the lower deck until a retrieval clears it.",
+    title: "Leave the crews. Two Clinton’s stack is the problem, not the headcount.",
+    body: "Midday pulls are under capacity at all three. Two Clinton is packed and the stack is full. Next park-down stays off the lower deck until a retrieval clears it.",
     done: "No move. A spare valet does not free a stacker.",
   };
 }
@@ -170,23 +170,25 @@ export const DEMO_GARAGES: Garage[] = [
     stalls: 174,
     sla: 10,
     yield: 168,
-    zones: { hot: 92, warm: 84, cold: 71, stack: 66 },
+    zones: { hot: 98, warm: 94, cold: 86, stack: 100 },
     hourly: day([3, 8, 22, 45, 16, 9, 7, 6, 5, 4, 6, 10, 14, 12, 7, 4, 2, 2, 1]),
     cred: [
       { unit: "702", score: 94, note: "On time. Standing Thursday is clean." },
       { unit: "1512", score: 41, note: "Two no-shows this month. Requests wait." },
     ],
     notes: [
+      { when: "7:51a", text: "Lower deck blocked. Retrieval ran 19 min." },
       { when: "8:12a", text: "1512 waited 14 min. Audi on B-13 was nosed in." },
+      { when: "Now", text: "Stack is full. Next park-down waits or takes warm." },
     ],
-    fit: "8a cars are already in hot. Don’t restack them before 9.",
+    fit: "Stop park-downs onto the lower deck until a retrieval clears it.",
     windows: {
-      morning: { occupied: 150, valets: 4, demand: 45, demandLabel: "8a", retrievalAvg: 8.4, retrievalP90: 12, openTickets: 11, incidents: 1 },
-      midday: { occupied: 142, valets: 3, demand: 4, demandLabel: "2p", retrievalAvg: 6.1, retrievalP90: 9, openTickets: 3, incidents: 0 },
-      evening: { occupied: 155, valets: 4, demand: 14, demandLabel: "5p", retrievalAvg: 7.2, retrievalP90: 11, openTickets: 6, incidents: 0 },
+      morning: { occupied: 158, valets: 3, demand: 45, demandLabel: "8a", retrievalAvg: 13.5, retrievalP90: 18, openTickets: 12, incidents: 2 },
+      midday: { occupied: 166, valets: 3, demand: 6, demandLabel: "2p", retrievalAvg: 11, retrievalP90: 16, openTickets: 6, incidents: 1 },
+      evening: { occupied: 166, valets: 3, demand: 18, demandLabel: "5p", retrievalAvg: 12.4, retrievalP90: 18, openTickets: 8, incidents: 2 },
     },
-    today: { occupied: 148, valets: 4, demand: 45, demandLabel: "8a peak", retrievalAvg: 8.1, retrievalP90: 12, openTickets: 11, incidents: 1 },
-    week: { occupied: 136, valets: 4, demand: 42, demandLabel: "typical 8a", retrievalAvg: 7.4, retrievalP90: 11, openTickets: 4, incidents: 0 },
+    today: { occupied: 160, valets: 3, demand: 45, demandLabel: "8a peak", retrievalAvg: 13.2, retrievalP90: 18, openTickets: 12, incidents: 2 },
+    week: { occupied: 158, valets: 3, demand: 42, demandLabel: "typical 8a", retrievalAvg: 12.6, retrievalP90: 17, openTickets: 8, incidents: 2 },
   },
   {
     id: "one",
@@ -215,22 +217,19 @@ export const DEMO_GARAGES: Garage[] = [
     stalls: 96,
     sla: 10,
     yield: 204,
-    zones: { hot: 100, warm: 96, cold: 88, stack: 100 },
+    zones: { hot: 78, warm: 70, cold: 55, stack: 40 },
     hourly: day([2, 3, 12, 26, 11, 5, 3, 2, 2, 3, 5, 9, 16, 11, 4, 2, 1, 1, 0]),
-    cred: [{ unit: "1902", score: 38, note: "Cancels inside 5 min. Pulls start, then die." }],
-    notes: [
-      { when: "7:51a", text: "Lower deck blocked. Retrieval ran 19 min." },
-      { when: "Now", text: "Stack is full. Next park-down waits or takes warm." },
-    ],
-    fit: "Stop park-downs onto the lower deck until a retrieval clears it.",
+    cred: [{ unit: "1902", score: 88, note: "Steady. No cancels this week." }],
+    notes: [{ when: "Today", text: "No incidents this shift." }],
+    fit: "8a is inside the crew. Hot row still has room.",
     windows: {
-      morning: { occupied: 91, valets: 2, demand: 26, demandLabel: "8a", retrievalAvg: 13.5, retrievalP90: 18, openTickets: 8, incidents: 2 },
-      midday: { occupied: 90, valets: 2, demand: 3, demandLabel: "2p", retrievalAvg: 8, retrievalP90: 12, openTickets: 2, incidents: 1 },
-      evening: { occupied: 92, valets: 2, demand: 16, demandLabel: "5p", retrievalAvg: 9.4, retrievalP90: 14, openTickets: 5, incidents: 1 },
+      morning: { occupied: 78, valets: 3, demand: 26, demandLabel: "8a", retrievalAvg: 6.2, retrievalP90: 8, openTickets: 2, incidents: 0 },
+      midday: { occupied: 74, valets: 2, demand: 3, demandLabel: "2p", retrievalAvg: 5.4, retrievalP90: 7, openTickets: 1, incidents: 0 },
+      evening: { occupied: 80, valets: 3, demand: 11, demandLabel: "5p", retrievalAvg: 6.1, retrievalP90: 8, openTickets: 2, incidents: 0 },
     },
-    today: { occupied: 91, valets: 2, demand: 26, demandLabel: "8a peak", retrievalAvg: 12.8, retrievalP90: 18, openTickets: 8, incidents: 2 },
-    week: { occupied: 88, valets: 2, demand: 24, demandLabel: "typical 8a", retrievalAvg: 11.6, retrievalP90: 16, openTickets: 5, incidents: 1 },
+    today: { occupied: 78, valets: 3, demand: 26, demandLabel: "8a peak", retrievalAvg: 6.4, retrievalP90: 8, openTickets: 2, incidents: 0 },
+    week: { occupied: 76, valets: 3, demand: 22, demandLabel: "typical 8a", retrievalAvg: 6.2, retrievalP90: 8, openTickets: 2, incidents: 0 },
   },
 ];
 
-export const MOVE = { from: "one", to: "huguenot", count: 1 } as const;
+export const MOVE = { from: "one", to: "tcp", count: 1 } as const;

@@ -140,9 +140,9 @@ const SEATS = [
       {
         h: "The call",
         items: [
-          "360 Huguenot is short at 8a. One Clinton Park can give up a valet.",
+          "Two Clinton is short at 8a. One Clinton Park can give up a valet.",
           "Stage the move and the card changes color",
-          "Two Clinton stays on the line — don’t rob it",
+          "360 Huguenot stays covered — don’t rob it",
         ],
       },
       {
@@ -150,7 +150,7 @@ const SEATS = [
         items: [
           "Hot, warm, cold, stack — full stack is a red bar",
           "Street cred and the exception that caused the wait",
-          "Sample yield per stall. 360 Huguenot earns more and still misses the curb",
+          "Sample book. Two Clinton is the miss",
         ],
       },
     ],

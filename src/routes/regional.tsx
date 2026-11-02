@@ -74,7 +74,7 @@ function DemoBoard() {
   const [range, setRange] = useState<RangeKey>("today");
   const [moved, setMoved] = useState(false);
   const [focus, setFocus] = useState(false);
-  const [selected, setSelected] = useState("hudson");
+  const [selected, setSelected] = useState("huguenot");
   const [sort, setSort] = useState<{ key: "health" | "occupancy" | "p90" | "valets"; dir: "asc" | "desc" }>({
     key: "health",
     dir: "asc",
@@ -235,7 +235,7 @@ function DemoBoard() {
           </tbody>
         </table>
         <p className="px-4 py-3 text-xs text-muted">
-          Yield is sample dollars per stall this month. Not a bill and not the live ledger. Hudson earns more per stall and still misses the curb.
+          Yield is sample dollars per stall this month. Not a bill and not the live ledger. 360 Huguenot earns more per stall and still misses the curb.
         </p>
       </section>
 
@@ -398,7 +398,7 @@ function Shell({
             <h1 className="font-display text-4xl">{demo ? "Three garages. One floor." : "Garages on this login."}</h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
               {demo
-                ? `Sample Westchester book. New York ${clockLabel} · ${windowName}. Not the live ledger.`
+                ? `RXR New Rochelle. Sample book. New York ${clockLabel} · ${windowName}. Not the live ledger.`
                 : `New York ${clockLabel}. Two Clinton is the only live site.`}
             </p>
           </div>

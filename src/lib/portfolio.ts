@@ -128,31 +128,31 @@ export function portfolioCall(range: RangeKey, window: WindowKey): Call {
   if (range === "week") {
     return {
       action: "move",
-      title: "Hudson House has missed the 8a line four mornings this week.",
-      body: "Typical 8a is 24 pulls on 2 valets (20 cars/hr). The Halstead’s morning peak is 13 on 3 valets. Move one valet to Hudson before 7:30a. Two Clinton holds four — 42 against 40, on the line, not the miss.",
-      done: "Staged for the demo. Hudson can take 30 cars an hour. The Halstead still covers a 13-car peak.",
+      title: "360 Huguenot has missed the 8a line four mornings this week.",
+      body: "Typical 8a is 24 pulls on 2 valets (20 cars/hr). One Clinton Park’s morning peak is 13 on 3 valets. Move one valet to 360 Huguenot before 7:30a. Two Clinton holds four — 42 against 40, on the line, not the miss.",
+      done: "Staged for the demo. 360 Huguenot can take 30 cars an hour. One Clinton Park still covers a 13-car peak.",
     };
   }
   if (range === "today" || (range === "now" && window === "morning")) {
     return {
       action: "move",
-      title: "Move 1 valet from The Halstead to Hudson House before 8a.",
-      body: "Hudson peaks at 26 pulls with 2 valets (20 cars/hr). The Halstead peaks at 14 and can give one up. Two Clinton is on the line at 45 vs 40 — leave those four where they are.",
-      done: "Staged for the demo. Hudson can take 30 cars an hour. The Halstead still covers 14. Two Clinton stays at four. Nothing was sent to a live crew.",
+      title: "Move 1 valet from One Clinton Park to 360 Huguenot before 8a.",
+      body: "360 Huguenot peaks at 26 pulls with 2 valets (20 cars/hr). One Clinton Park peaks at 14 and can give one up. Two Clinton is on the line at 45 vs 40 — leave those four where they are.",
+      done: "Staged for the demo. 360 Huguenot can take 30 cars an hour. One Clinton Park still covers 14. Two Clinton stays at four. Nothing was sent to a live crew.",
     };
   }
   if (window === "evening") {
     return {
       action: "hold",
-      title: "Evening return is covered if Hudson keeps the morning add.",
-      body: "5p is 16 pulls at Hudson (20 cars/hr on 2, 30 if you moved someone). Two Clinton’s 5p is 14 against 40. Don’t pull a valet off Two Clinton for this.",
-      done: "Crews stay. Hudson’s 5p is inside capacity.",
+      title: "Evening return is covered if 360 Huguenot keeps the morning add.",
+      body: "5p is 16 pulls at 360 Huguenot (20 cars/hr on 2, 30 if you moved someone). Two Clinton’s 5p is 14 against 40. Don’t pull a valet off Two Clinton for this.",
+      done: "Crews stay. 360 Huguenot’s 5p is inside capacity.",
     };
   }
   return {
     action: "hold",
-    title: "Leave the crews. Hudson’s stack is the problem, not the headcount.",
-    body: "Midday pulls are under capacity at all three. Hudson is about 95% full and the stack is full. Next park-down stays off the lower deck until a retrieval clears it.",
+    title: "Leave the crews. 360 Huguenot’s stack is the problem, not the headcount.",
+    body: "Midday pulls are under capacity at all three. 360 Huguenot is about 95% full and the stack is full. Next park-down stays off the lower deck until a retrieval clears it.",
     done: "No move. A spare valet does not free a stacker.",
   };
 }
@@ -189,15 +189,15 @@ export const DEMO_GARAGES: Garage[] = [
     week: { occupied: 136, valets: 4, demand: 42, demandLabel: "typical 8a", retrievalAvg: 7.4, retrievalP90: 11, openTickets: 4, incidents: 0 },
   },
   {
-    id: "halstead",
-    name: "The Halstead",
-    place: "White Plains",
+    id: "one",
+    name: "One Clinton Park",
+    place: "New Rochelle",
     stalls: 128,
     sla: 10,
     yield: 121,
     zones: { hot: 70, warm: 61, cold: 48, stack: 22 },
     hourly: day([2, 8, 14, 9, 6, 4, 3, 3, 3, 4, 6, 8, 6, 3, 2]),
-    cred: [{ unit: "12B", score: 88, note: "Steady. No cancels this week." }],
+    cred: [{ unit: "814", score: 88, note: "Steady. No cancels this week." }],
     notes: [{ when: "Today", text: "No incidents this shift." }],
     fit: "Warm row can take 11 more cars without touching a stacker.",
     windows: {
@@ -209,15 +209,15 @@ export const DEMO_GARAGES: Garage[] = [
     week: { occupied: 80, valets: 3, demand: 13, demandLabel: "typical 8a", retrievalAvg: 5.2, retrievalP90: 8, openTickets: 2, incidents: 0 },
   },
   {
-    id: "hudson",
-    name: "Hudson House",
-    place: "Yonkers",
+    id: "huguenot",
+    name: "360 Huguenot",
+    place: "New Rochelle",
     stalls: 96,
     sla: 10,
     yield: 204,
     zones: { hot: 100, warm: 96, cold: 88, stack: 100 },
     hourly: day([3, 12, 26, 11, 5, 3, 2, 2, 3, 5, 9, 16, 11, 4, 2]),
-    cred: [{ unit: "4C", score: 38, note: "Cancels inside 5 min. Pulls start, then die." }],
+    cred: [{ unit: "1902", score: 38, note: "Cancels inside 5 min. Pulls start, then die." }],
     notes: [
       { when: "7:51a", text: "Lower deck blocked. Retrieval ran 19 min." },
       { when: "Now", text: "Stack is full. Next park-down waits or takes warm." },
@@ -233,4 +233,4 @@ export const DEMO_GARAGES: Garage[] = [
   },
 ];
 
-export const MOVE = { from: "halstead", to: "hudson", count: 1 } as const;
+export const MOVE = { from: "one", to: "huguenot", count: 1 } as const;

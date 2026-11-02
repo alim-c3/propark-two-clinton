@@ -124,7 +124,7 @@ const SEATS = [
     id: "regional",
     kicker: "Regional",
     title: "Three garages. One call.",
-    promise: "See who is short, who is fat, and move a valet before the wave.",
+    promise: "The red garage, the reason, and whether a person would even help.",
     demo: "/regional" as const,
     demoLabel: "Open regional",
     img: "/flow-manager.jpg",
@@ -132,25 +132,25 @@ const SEATS = [
       {
         h: "The book",
         items: [
-          "Red, yellow, or green the moment the book opens",
-          "Full, wait, valets, and who’s waiting — on the card",
+          "The miss is the page. The covered garages sit under it",
+          "Who showed, who no-called, and what is actually blocked",
           "Open a garage for the floor. The day starts at 5a",
         ],
       },
       {
         h: "The call",
         items: [
-          "Two Clinton is short at 8a. One Clinton Park can give up a valet.",
-          "Stage the move and the card changes color",
-          "360 Huguenot stays covered — don’t rob it",
+          "At 3pm the call is the deck, not a valet for 8a",
+          "Ana can walk from One Clinton. Huguenot is a separate crew",
+          "Sending her does not turn a blocked deck into a win",
         ],
       },
       {
         h: "Under the number",
         items: [
           "Hot, warm, cold, stack — full stack is a red bar",
-          "Street cred and the exception that caused the wait",
-          "Sample book. Two Clinton is the miss",
+          "Residents and the exception that caused the wait",
+          "Mon and Wed were the deck. Tue and Thu were no-calls",
         ],
       },
     ],

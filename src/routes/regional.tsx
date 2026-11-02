@@ -20,6 +20,7 @@ import { getSiteMode } from "@/lib/site-mode";
 import {
   CARS_PER_VALET_HR,
   DEMO_GARAGES,
+  MORNINGS,
   MOVE,
   bandOf,
   healthScore,
@@ -110,22 +111,30 @@ function Regional() {
 function DemoBoard() {
   const clock = nyClock();
   const [range, setRange] = useState<RangeKey>("today");
-  const [moved, setMoved] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [held, setHeld] = useState(false);
+  const [planned, setPlanned] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const call = portfolioCall(range, clock.window);
   const rows = useMemo(() => {
     return DEMO_GARAGES.map((g) => {
-      const extra = moved && g.id === MOVE.from ? -MOVE.count : moved && g.id === MOVE.to ? MOVE.count : 0;
+      const extra = sent && g.id === MOVE.from ? -MOVE.count : sent && g.id === MOVE.to ? MOVE.count : 0;
       return scoreGarage(g, range, clock.window, extra);
     });
-  }, [range, clock.window, moved]);
+  }, [range, clock.window, sent]);
 
+  const ranked = [...rows].sort((a, b) => a.health - b.health);
+  const hero = ranked[0];
+  const rest = ranked.slice(1);
   const open = rows.find((g) => g.id === openId) ?? null;
+  const acted = call.action === "send" ? sent : call.action === "plan" ? planned : held;
 
-  function stage() {
-    if (moved || call.action !== "move") return;
-    setMoved(true);
+  function act() {
+    if (acted) return;
+    if (call.action === "send") setSent(true);
+    else if (call.action === "plan") setPlanned(true);
+    else setHeld(true);
     toast.success(call.done);
   }
 
@@ -135,25 +144,31 @@ function DemoBoard() {
       range={range}
       onRange={setRange}
       clockLabel={clock.label}
-      windowName={clock.window}
       garages={rows.map((g) => ({ id: g.id, name: g.name }))}
       openId={openId}
       onOpen={setOpenId}
     >
       {open ? (
-        <GarageFloor
-          garage={open}
-          demo
-          move={open.id === MOVE.from || open.id === MOVE.to ? { call, moved, onStage: stage, onUndo: () => setMoved(false) } : null}
-        />
+        <GarageFloor garage={open} demo sent={sent} />
       ) : (
         <>
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
-            {rows.map((g) => (
-              <StatusCard key={g.id} garage={g} onOpen={() => setOpenId(g.id)} />
+          <Decision
+            call={call}
+            acted={acted}
+            onAct={act}
+            onUndo={() => {
+              if (call.action === "send") setSent(false);
+              else if (call.action === "plan") setPlanned(false);
+              else setHeld(false);
+            }}
+            showWeek={range === "week"}
+          />
+          <Hero garage={hero} sent={sent} hour={clock.hour} minute={clock.minute} onOpen={() => setOpenId(hero.id)} />
+          <div className="mt-3 flex flex-col gap-2">
+            {rest.map((g) => (
+              <CoveredRow key={g.id} garage={g} sent={sent} onOpen={() => setOpenId(g.id)} />
             ))}
           </div>
-          <CallBanner call={call} moved={moved} onStage={stage} onUndo={() => setMoved(false)} />
         </>
       )}
     </Shell>
@@ -217,6 +232,18 @@ function LiveBoard() {
         ? [{ when: "Now", text: `${nested[0].blockedBy} is in front of ${nested[0].plate}.` }]
         : [{ when: "Now", text: "No nested car on the open board." }],
       fit: "This is the live floor. The site board is the desk.",
+      fact: {
+        client: "RXR",
+        kind: "Residential retrieval",
+        scheduled: onFloor,
+        showed: Object.entries(staff)
+          .filter(([, on]) => on)
+          .map(([name]) => (name === "you" ? "You" : name)),
+        noCall: [],
+        blocker: nested[0] ? `${nested[0].blockedBy} is in front of ${nested[0].plate}.` : null,
+        claim: nested[0] ? "A car is boxed in." : "No open claim on this board.",
+        redSince: null,
+      },
       windows: {} as Scored["windows"],
       today: {} as Scored["today"],
       week: {} as Scored["week"],
@@ -245,7 +272,6 @@ function LiveBoard() {
       range={range}
       onRange={setRange}
       clockLabel={clock.label}
-      windowName={clock.window}
       garages={[{ id: garage.id, name: garage.name }]}
       openId={openId}
       onOpen={setOpenId}
@@ -254,13 +280,17 @@ function LiveBoard() {
         <GarageFloor garage={garage} />
       ) : (
         <>
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
-            <StatusCard garage={garage} onOpen={() => setOpenId(garage.id)} />
-            <article className="rounded-2xl border border-dashed border-line bg-white p-4">
-              <p className="font-display text-2xl">Next garage</p>
-              <p className="mt-2 text-sm text-muted">Assigned garages land here. This login is Two Clinton only.</p>
-            </article>
-          </div>
+          <section className="mt-4">
+            <h1 className="max-w-3xl font-display text-4xl">
+              {garage.fact.blocker ? "A car is boxed in. That is the wait." : "Nothing to move. This login is one garage."}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted">
+              {garage.fact.blocker
+                ? garage.fact.blocker
+                : "No second site is assigned, so there is no one to send. The floor is whoever is clocked in."}
+            </p>
+          </section>
+          <Hero garage={garage} sent={false} hour={clock.hour} minute={clock.minute} onOpen={() => setOpenId(garage.id)} />
         </>
       )}
     </Shell>
@@ -272,7 +302,6 @@ function Shell({
   range,
   onRange,
   clockLabel,
-  windowName,
   garages,
   openId,
   onOpen,
@@ -282,7 +311,6 @@ function Shell({
   range: RangeKey;
   onRange: (r: RangeKey) => void;
   clockLabel: string;
-  windowName: string;
   garages: { id: string; name: string }[];
   openId: string | null;
   onOpen: (id: string | null) => void;
@@ -298,14 +326,11 @@ function Shell({
         </p>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-4xl">
-              {garages.find((g) => g.id === openId)?.name ?? (demo ? "Three garages." : "This login.")}
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-muted">
-              {demo
-                ? `RXR New Rochelle. New York ${clockLabel} · ${windowName}. Red is short, yellow is close, green is covered.`
-                : `New York ${clockLabel}. Two Clinton is the only live site.`}
-            </p>
+            {openId ? (
+              <h1 className="font-display text-4xl">{garages.find((g) => g.id === openId)?.name}</h1>
+            ) : (
+              <p className="text-sm text-muted">{demo ? `RXR New Rochelle · ${clockLabel}` : `New York ${clockLabel} · Two Clinton only`}</p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-navy" htmlFor="garage-pick">
@@ -347,42 +372,153 @@ function Shell({
   );
 }
 
-function StatusCard({ garage, onOpen }: { garage: Scored; onOpen: () => void }) {
-  const t = tone(garage.band);
-  const carsShort = garage.slice.demand - garage.capacity;
+function Decision({
+  call,
+  acted,
+  onAct,
+  onUndo,
+  showWeek,
+}: {
+  call: Call;
+  acted: boolean;
+  onAct: () => void;
+  onUndo: () => void;
+  showWeek: boolean;
+}) {
+  const label = call.action === "send" ? "Send Ana over" : call.action === "plan" ? "Set Ana for 7:30a" : "Hold park-downs";
   return (
-    <button type="button" onClick={onOpen} className={cn("rounded-2xl p-4 text-left", t.card)}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-2xl leading-tight">{garage.name}</p>
-          <p className={cn("text-xs", t.soft)}>{garage.place}</p>
+    <section className="mt-4">
+      <h1 className="max-w-3xl font-display text-4xl leading-tight">{acted ? call.done : call.title}</h1>
+      <p className="mt-3 max-w-2xl text-base text-navy">{acted ? call.doesNot : call.body}</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl bg-white p-4">
+          <p className="text-xs font-bold text-ok">Does</p>
+          <p className="mt-1 text-sm">{call.fixes}</p>
         </div>
-        <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide", t.chip)}>
-          {bandWord(garage.band).toUpperCase()}
+        <div className="rounded-2xl bg-white p-4">
+          <p className="text-xs font-bold text-danger">Does not</p>
+          <p className="mt-1 text-sm">{call.doesNot}</p>
+        </div>
+      </div>
+      {showWeek ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MORNINGS.map((m) => (
+            <span
+              key={m.day}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-bold",
+                m.why === "Deck" ? "bg-danger-soft text-danger" : m.why === "No-call" ? "bg-gold/40 text-navy" : "bg-ok/15 text-ok",
+              )}
+            >
+              {m.day} · {m.why}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-4">
+        {acted ? (
+          <Button variant="navy" size="sm" onClick={onUndo}>
+            Undo
+          </Button>
+        ) : (
+          <Button variant="navy" size="sm" onClick={onAct}>
+            {label}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function crewLine(g: Scored, sent: boolean) {
+  if (g.id === "tcp" && g.fact.noCall.length) {
+    const here = sent ? [...g.fact.showed, "Ana"] : g.fact.showed;
+    return `${g.fact.scheduled} scheduled. ${here.join(", ")} here. ${g.fact.noCall.join(" and ")} no-called.`;
+  }
+  if (g.id === "one" && sent) return "Sam and Priya left. Ana is at Two Clinton.";
+  if (!g.fact.showed.length) return "Nobody clocked in.";
+  return `${g.fact.showed.join(", ")} on the floor.`;
+}
+
+function redFor(since: string, hour: number, minute: number) {
+  const match = since.match(/(\d+):(\d+)(a|p)/);
+  if (!match) return `since ${since}`;
+  let startHour = Number(match[1]) % 12;
+  if (match[3] === "p") startHour += 12;
+  const elapsed = hour * 60 + minute - (startHour * 60 + Number(match[2]));
+  if (elapsed < 0) return `since ${since}`;
+  const h = Math.floor(elapsed / 60);
+  const m = elapsed % 60;
+  return h ? `Red for ${h}h ${m}m` : `Red for ${m}m`;
+}
+
+function Hero({
+  garage,
+  sent,
+  hour,
+  minute,
+  onOpen,
+}: {
+  garage: Scored;
+  sent: boolean;
+  hour: number;
+  minute: number;
+  onOpen: () => void;
+}) {
+  const t = tone(garage.band);
+  const late = lateBy(garage.slice.retrievalP90, garage.sla);
+  return (
+    <button type="button" onClick={onOpen} className={cn("mt-4 w-full rounded-2xl p-5 text-left", t.card)}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className={cn("text-sm", t.soft)}>
+            {garage.fact.client} · {garage.fact.kind} · {garage.sla} min promise
+          </p>
+          <p className="mt-1 font-display text-4xl leading-none">{garage.name}</p>
+        </div>
+        <span className={cn("rounded-full px-3 py-1 text-xs font-bold", t.chip)}>
+          {garage.fact.redSince && garage.band !== "ok" ? redFor(garage.fact.redSince, hour, minute) : bandWord(garage.band)}
         </span>
       </div>
-      <p className="mt-3 min-h-10 text-sm font-semibold">{glance(garage)}</p>
-      <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3">
+      <p className="mt-4 max-w-2xl text-lg font-semibold">{garage.fact.blocker ?? glance(garage)}</p>
+      <p className={cn("mt-2 text-sm", t.soft)}>{crewLine(garage, sent)}</p>
+      <dl className="mt-4 grid grid-cols-3 gap-3">
+        <Metric label="To the curb" value={garage.slice.retrievalP90 ? `${garage.slice.retrievalP90} min` : "—"} note={late > 0 ? `${late} min late` : waitNote(garage.slice.retrievalP90, garage.sla)} soft={t.soft} />
         <Metric label="Full" value={pct(garage.occupancy)} note={`${garage.slice.occupied} of ${garage.stalls}`} soft={t.soft} />
-        <Metric
-          label="To the curb"
-          value={`${garage.slice.retrievalP90} min`}
-          note={garage.slice.retrievalP90 ? waitNote(garage.slice.retrievalP90, garage.sla) : "No pulls yet"}
-          soft={t.soft}
-        />
-        <Metric
-          label="Valets"
-          value={String(garage.valets)}
-          note={carsShort > 0 ? `${carsShort} cars short of ${garage.slice.demandLabel}` : `${garage.capacity}/hr covers ${garage.slice.demand}`}
-          soft={t.soft}
-        />
-        <Metric
-          label="Waiting"
-          value={String(garage.slice.openTickets)}
-          note={garage.slice.incidents ? `${garage.slice.incidents} incident${garage.slice.incidents === 1 ? "" : "s"}` : "No incidents"}
-          soft={t.soft}
-        />
+        <Metric label="Waiting" value={String(garage.slice.openTickets)} note={garage.fact.claim} soft={t.soft} />
       </dl>
+      {garage.id === "tcp" ? (
+        <p className={cn("mt-4 text-sm", t.soft)}>
+          Ana can walk from One Clinton. 2 min. Sister towers, same account.
+          {" "}360 Huguenot is 6 min. Separate crew. Do not pull.
+          {sent ? " Ana is counted. The curb did not move." : ""}
+        </p>
+      ) : null}
+    </button>
+  );
+}
+
+function CoveredRow({ garage, sent, onOpen }: { garage: Scored; sent: boolean; onOpen: () => void }) {
+  const note =
+    garage.id === "one"
+      ? sent
+        ? "Ana is at Two Clinton"
+        : "Ana can leave · 2 min"
+      : garage.id === "huguenot"
+        ? "Do not pull · 6 min"
+        : bandWord(garage.band);
+  return (
+    <button type="button" onClick={onOpen} className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left">
+      <span className="flex min-w-0 items-center gap-3">
+        <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", garage.band === "ok" ? "bg-ok" : garage.band === "watch" ? "bg-gold" : "bg-danger")} />
+        <span className="min-w-0">
+          <span className="font-semibold">{garage.name}</span>
+          <span className="mt-0.5 block text-sm text-muted sm:mt-0 sm:ml-2 sm:inline">
+            {garage.fact.client} · {garage.slice.retrievalP90} min to the curb · {crewLine(garage, sent)}
+          </span>
+        </span>
+      </span>
+      <span className="shrink-0 text-sm font-semibold">{note}</span>
     </button>
   );
 }
@@ -397,55 +533,10 @@ function Metric({ label, value, note, soft }: { label: string; value: string; no
   );
 }
 
-function CallBanner({
-  call,
-  moved,
-  onStage,
-  onUndo,
-}: {
-  call: Call;
-  moved: boolean;
-  onStage: () => void;
-  onUndo: () => void;
-}) {
-  const showMove = call.action === "move";
-  return (
-    <section className={cn("mt-4 rounded-2xl p-4", showMove && !moved ? "bg-gold/25" : "bg-navy text-cream")}>
-      <p className={cn("text-[10px] font-bold tracking-[0.16em]", showMove && !moved ? "text-navy" : "text-gold")}>
-        {moved ? "STAGED" : "THE CALL"}
-      </p>
-      <p className="mt-1 font-display text-2xl">{moved && showMove ? "Move is staged." : call.title}</p>
-      <p className={cn("mt-2 max-w-3xl text-sm", showMove && !moved ? "text-navy" : "text-cream/80")}>
-        {moved && showMove ? call.done : call.body}
-      </p>
-      {showMove ? (
-        <div className="mt-3">
-          {moved ? (
-            <Button variant="gold" size="sm" onClick={onUndo}>
-              Undo
-            </Button>
-          ) : (
-            <Button variant="navy" size="sm" onClick={onStage}>
-              Stage the move
-            </Button>
-          )}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function GarageFloor({
-  garage,
-  demo,
-  move,
-}: {
-  garage: Scored;
-  demo?: boolean;
-  move?: { call: Call; moved: boolean; onStage: () => void; onUndo: () => void } | null;
-}) {
+function GarageFloor({ garage, demo, sent = false }: { garage: Scored; demo?: boolean; sent?: boolean }) {
   const t = tone(garage.band);
-  const [picked, setPicked] = useState("8a");
+  const nowLabel = nyClock().label;
+  const [picked, setPicked] = useState(garage.hourly.some((row) => row.hour === nowLabel) ? nowLabel : "8a");
   const chart = garage.hourly.map((row) => ({ ...row, capacity: garage.capacity }));
   const hour = chart.find((row) => row.hour === picked) ?? chart[0];
   const gap = hour ? Math.max(0, hour.pulls - hour.capacity) : 0;
@@ -454,14 +545,16 @@ function GarageFloor({
   return (
     <div className="mt-4">
       <section className={cn("rounded-2xl p-5", t.card)}>
-        <p className={cn("text-[10px] font-bold tracking-[0.16em]", t.soft)}>{garage.place.toUpperCase()}</p>
+        <p className={cn("text-sm", t.soft)}>
+          {garage.fact.client} · {garage.fact.kind} · {garage.sla} min promise
+        </p>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-display text-4xl">{garage.name}</h2>
-          <span className={cn("rounded-full px-3 py-1 text-xs font-bold tracking-wide", t.chip)}>
-            {bandWord(garage.band).toUpperCase()}
-          </span>
+          <span className={cn("rounded-full px-3 py-1 text-xs font-bold", t.chip)}>{bandWord(garage.band)}</span>
         </div>
-        <p className="mt-2 max-w-2xl text-base font-semibold">{glance(garage)}</p>
+        <p className="mt-3 max-w-2xl text-lg font-semibold">{garage.fact.blocker ?? glance(garage)}</p>
+        <p className={cn("mt-2 text-sm", t.soft)}>{crewLine(garage, sent)}</p>
+        <p className={cn("mt-1 text-sm", t.soft)}>{garage.fact.claim}</p>
         <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Metric label="Full" value={pct(garage.occupancy)} note={`${garage.slice.occupied} of ${garage.stalls}`} soft={t.soft} />
           <Metric
@@ -479,8 +572,6 @@ function GarageFloor({
           />
         </dl>
       </section>
-
-      {move ? <div className="mt-4"><CallBanner {...move} /></div> : null}
 
       <section className="mt-4 rounded-2xl border border-line bg-white p-4">
         <p className="font-display text-2xl text-navy">Cars per hour</p>
@@ -529,8 +620,10 @@ function GarageFloor({
             </p>
             <p className="mt-1 text-sm opacity-80">
               {gap
-                ? `Short ${gap} cars this hour. Need ${Math.ceil(hour.pulls / CARS_PER_VALET_HR)} valets.`
-                : "Covered if the floor holds."}
+                ? `Short ${gap} cars this hour. Need ${Math.ceil(hour.pulls / CARS_PER_VALET_HR)} valets.${garage.fact.blocker ? " The deck is still blocked." : ""}`
+                : garage.fact.blocker
+                  ? "This hour fits. The deck is still blocked."
+                  : "Covered if the floor holds."}
             </p>
           </div>
         ) : null}
@@ -559,7 +652,7 @@ function GarageFloor({
           </div>
           {garage.cred.length ? (
             <div>
-              <h3 className="font-display text-xl">Street cred</h3>
+              <h3 className="font-display text-xl">Residents</h3>
               <ul className="mt-2 space-y-2">
                 {garage.cred.map((c) => (
                   <li key={c.unit} className="rounded-xl bg-cream px-3 py-2 text-sm">

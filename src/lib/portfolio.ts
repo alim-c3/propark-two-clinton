@@ -31,6 +31,16 @@ export type Garage = {
   cred: { unit: string; score: number; note: string }[];
   notes: { when: string; text: string }[];
   fit: string;
+  fact: {
+    client: string;
+    kind: string;
+    scheduled: number;
+    showed: string[];
+    noCall: string[];
+    blocker: string | null;
+    claim: string;
+    redSince: string | null;
+  };
   windows: Record<WindowKey, Slice>;
   today: Slice;
   week: Slice;
@@ -45,18 +55,19 @@ export function siteModeFromHost(host: string | null | undefined): SiteMode {
   return "demo";
 }
 
-export function nyClock(now = Date.now()): { hour: number; label: string; window: WindowKey } {
+export function nyClock(now = Date.now()): { hour: number; minute: number; label: string; window: WindowKey } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
     hour: "numeric",
+    minute: "numeric",
     hourCycle: "h23",
   }).formatToParts(new Date(now));
   const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
   const h12 = hour % 12 === 0 ? 12 : hour % 12;
   const label = `${h12}${hour < 12 ? "a" : "p"}`;
-  const window: WindowKey =
-    hour >= 6 && hour < 10 ? "morning" : hour >= 15 && hour < 19 ? "evening" : "midday";
-  return { hour, label, window };
+  const window: WindowKey = hour >= 6 && hour < 10 ? "morning" : hour >= 15 && hour < 19 ? "evening" : "midday";
+  return { hour, minute, label, window };
 }
 
 export function healthScore(input: {
@@ -122,38 +133,56 @@ export function scoreGarage(garage: Garage, range: RangeKey, window: WindowKey, 
   };
 }
 
-export type Call = { action: "move" | "hold"; title: string; body: string; done: string };
+export type Call = {
+  action: "hold" | "send" | "plan";
+  title: string;
+  body: string;
+  fixes: string;
+  doesNot: string;
+  done: string;
+};
 
 export function portfolioCall(range: RangeKey, window: WindowKey): Call {
   if (range === "week") {
     return {
-      action: "move",
-      title: "Two Clinton Park has missed the 8a line four mornings this week.",
-      body: "Typical 8a is 42 pulls on 3 valets (30 cars/hr). One Clinton Park’s morning peak is 13 on 3 valets. Move one valet to Two Clinton before 7:30a. 360 Huguenot is covered — leave that crew.",
-      done: "Staged for the demo. Two Clinton can take 40 cars an hour. One Clinton Park still covers a 13-car peak.",
+      action: "plan",
+      title: "Four misses. A valet fixes two of them.",
+      body: "Mon and Wed the lower deck was blocked. Tue and Thu Maya and Andre no-called. Fri held. Ana walks from One Clinton in 2 minutes. That is a no-call morning, not a deck morning.",
+      fixes: "Tue and Thu were headcount. Ana covers one of those mornings. One Clinton still has two valets for 14 cars.",
+      doesNot: "Mon and Wed were the deck. The curb stays past 10 minutes until a car comes off the lower deck.",
+      done: "Tomorrow is set. Ana leaves One Clinton at 7:30a. The deck is still blocked. Not sent to a live crew.",
     };
   }
-  if (range === "today" || (range === "now" && window === "morning")) {
+  if (window === "morning") {
     return {
-      action: "move",
-      title: "Move 1 valet from One Clinton Park to Two Clinton Park before 8a.",
-      body: "Two Clinton peaks at 45 pulls with 3 valets (30 cars/hr). One Clinton Park peaks at 14 and can give one up. 360 Huguenot covers 26 on 3 — leave them.",
-      done: "Staged for the demo. Two Clinton can take 40 cars an hour. One Clinton Park still covers 14. 360 Huguenot stays at three. Nothing was sent to a live crew.",
+      action: "send",
+      title: "Send Ana. The deck is still blocked.",
+      body: "45 cars at 8a. Five were scheduled at Two Clinton. Luis, Derrick, and Chris showed. Maya and Andre no-called. Ana is at the sister tower, 2 minutes away. 360 Huguenot is a separate crew. Do not pull them.",
+      fixes: "Four valets. 40 cars an hour. The wave is still 5 cars short.",
+      doesNot: "The curb stays at 18 minutes. The lower deck stays blocked. Yellow is not fixed.",
+      done: "Ana is on the Two Clinton count. 40 cars an hour against 45. The curb is still 18 minutes. The deck is still blocked.",
     };
   }
   if (window === "evening") {
     return {
       action: "hold",
-      title: "Evening return is covered if Two Clinton keeps the morning add.",
-      body: "5p is 18 pulls at Two Clinton. Four valets clear it at 40 cars an hour. Don’t pull that person back.",
-      done: "Crews stay. Two Clinton’s 5p is inside capacity.",
+      title: "The return fits. The curb does not.",
+      body: "5p is 18 cars. Three valets cover it at 30 an hour. Don’t pull Ana for a wave that already fits. The lower deck has been blocked since 7:51a, and that is why residents are still waiting.",
+      fixes: "Leave the crews. Park-downs stay off the lower deck.",
+      doesNot: "Sending a person does not clear a stacker. The 10-minute promise is still missed.",
+      done: "Crews stay. Park-downs held off the lower deck. Two Clinton is still past the promise.",
     };
   }
+  const today = range === "today";
   return {
     action: "hold",
-    title: "Leave the crews. Two Clinton’s stack is the problem, not the headcount.",
-    body: "Midday pulls are under capacity at all three. Two Clinton is packed and the stack is full. Next park-down stays off the lower deck until a retrieval clears it.",
-    done: "No move. A spare valet does not free a stacker.",
+    title: "Don't send Ana. The lower deck is blocked.",
+    body: today
+      ? "8a already missed. Five scheduled, three showed, and the deck was blocked before the wave. That hour is over. This hour fits the crew. Mon and Wed were the deck. Tue and Thu were no-calls."
+      : "This hour fits the crew. The lower deck is blocked, and a retrieval already ran 19 minutes. A valet will not free it.",
+    fixes: "Park-downs stay off the lower deck until a car comes out.",
+    doesNot: "Ana before 7:30a fixes a no-call morning. She does not fix the deck, and she does not pull the curb back to 10.",
+    done: "Held. Next park-down stays off the lower deck. Two Clinton stays red until a car comes out.",
   };
 }
 
@@ -182,6 +211,16 @@ export const DEMO_GARAGES: Garage[] = [
       { when: "Now", text: "Stack is full. Next park-down waits or takes warm." },
     ],
     fit: "Stop park-downs onto the lower deck until a retrieval clears it.",
+    fact: {
+      client: "RXR",
+      kind: "Residential retrieval",
+      scheduled: 5,
+      showed: ["Luis", "Derrick", "Chris"],
+      noCall: ["Maya", "Andre"],
+      blocker: "Lower deck blocked. A retrieval took 19 min.",
+      claim: "Long wait. No damage claim.",
+      redSince: "7:51a",
+    },
     windows: {
       morning: { occupied: 158, valets: 3, demand: 45, demandLabel: "8a", retrievalAvg: 13.5, retrievalP90: 18, openTickets: 12, incidents: 2 },
       midday: { occupied: 166, valets: 3, demand: 6, demandLabel: "2p", retrievalAvg: 11, retrievalP90: 16, openTickets: 6, incidents: 1 },
@@ -202,6 +241,16 @@ export const DEMO_GARAGES: Garage[] = [
     cred: [{ unit: "814", score: 88, note: "Steady. No cancels this week." }],
     notes: [{ when: "Today", text: "No incidents this shift." }],
     fit: "Warm row can take 11 more cars without touching a stacker.",
+    fact: {
+      client: "RXR",
+      kind: "Residential retrieval",
+      scheduled: 3,
+      showed: ["Ana", "Sam", "Priya"],
+      noCall: [],
+      blocker: null,
+      claim: "No open claim.",
+      redSince: null,
+    },
     windows: {
       morning: { occupied: 84, valets: 3, demand: 14, demandLabel: "8a", retrievalAvg: 4.8, retrievalP90: 7, openTickets: 2, incidents: 0 },
       midday: { occupied: 78, valets: 2, demand: 3, demandLabel: "2p", retrievalAvg: 4.4, retrievalP90: 6, openTickets: 1, incidents: 0 },
@@ -222,6 +271,16 @@ export const DEMO_GARAGES: Garage[] = [
     cred: [{ unit: "1902", score: 88, note: "Steady. No cancels this week." }],
     notes: [{ when: "Today", text: "No incidents this shift." }],
     fit: "8a is inside the crew. Hot row still has room.",
+    fact: {
+      client: "RXR",
+      kind: "Residential retrieval",
+      scheduled: 3,
+      showed: ["Jordan", "Elena", "Matt"],
+      noCall: [],
+      blocker: null,
+      claim: "No open claim.",
+      redSince: null,
+    },
     windows: {
       morning: { occupied: 78, valets: 3, demand: 26, demandLabel: "8a", retrievalAvg: 6.2, retrievalP90: 8, openTickets: 2, incidents: 0 },
       midday: { occupied: 74, valets: 2, demand: 3, demandLabel: "2p", retrievalAvg: 5.4, retrievalP90: 7, openTickets: 1, incidents: 0 },
@@ -233,3 +292,11 @@ export const DEMO_GARAGES: Garage[] = [
 ];
 
 export const MOVE = { from: "one", to: "tcp", count: 1 } as const;
+
+export const MORNINGS = [
+  { day: "Mon", why: "Deck" },
+  { day: "Tue", why: "No-call" },
+  { day: "Wed", why: "Deck" },
+  { day: "Thu", why: "No-call" },
+  { day: "Fri", why: "Held" },
+] as const;

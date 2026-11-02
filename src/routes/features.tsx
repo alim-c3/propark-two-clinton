@@ -132,7 +132,7 @@ const SEATS = [
       {
         h: "The book",
         items: [
-          "Health, occupancy, p90, and cars/hr for every garage",
+          "Health, occupancy, minutes to the curb, and cars/hr for every garage",
           "Now, today, or the last 7 days — same board",
           "Only off target, when you don’t want the quiet ones",
         ],

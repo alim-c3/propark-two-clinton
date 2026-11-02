@@ -64,6 +64,18 @@ function pct(n: number) {
   return `${Math.round(n * 100)}%`;
 }
 
+/** Minutes past the promise. Positive means the resident is waiting longer than promised. */
+function lateBy(mins: number, sla: number) {
+  return Math.round(mins - sla);
+}
+
+function waitNote(mins: number, sla: number) {
+  const gap = lateBy(mins, sla);
+  if (gap > 0) return `${gap} min late`;
+  if (gap === 0) return "on the promise";
+  return `${Math.abs(gap)} min to spare`;
+}
+
 function Regional() {
   const { mode } = Route.useLoaderData();
   return mode === "live" ? <LiveBoard /> : <DemoBoard />;
@@ -125,7 +137,7 @@ function DemoBoard() {
           ["HEALTH", String(health), bandLabel(bandOf(health))],
           ["OCCUPIED", pct(occupied / stalls), `${occupied} of ${stalls}`],
           ["VALETS", String(valets), `${valets * CARS_PER_VALET_HR} cars/hr`],
-          ["SLOWEST P90", `${worst.slice.retrievalP90} min`, worst.name],
+          ["LONGEST WAIT", `${worst.slice.retrievalP90} min`, `${worst.name} · ${waitNote(worst.slice.retrievalP90, worst.sla)}`],
           ["OFF TARGET", String(attention), attention ? "Needs a call" : "All inside the band"],
         ]}
       />
@@ -166,7 +178,7 @@ function DemoBoard() {
                 <p className="text-xs text-muted">{g.place}</p>
               </div>
               <span className={cn("rounded-full px-2 py-1 text-[11px] font-bold", bandClass(g.band))}>
-                {g.health}
+                {bandLabel(g.band)} · {g.health}
               </span>
             </div>
             <p className="mt-3 font-display text-3xl tabular-nums">{pct(g.occupancy)}</p>
@@ -175,8 +187,11 @@ function DemoBoard() {
             </p>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <div>
-                <dt className="text-[10px] font-bold tracking-wide text-gold-2">P90</dt>
-                <dd className="tabular-nums">{g.slice.retrievalP90} min</dd>
+                <dt className="text-[10px] font-bold tracking-wide text-gold-2">TO THE CURB</dt>
+                <dd className={cn("tabular-nums", g.slice.retrievalP90 > g.sla && "font-semibold text-danger")}>
+                  {g.slice.retrievalP90} min
+                </dd>
+                <p className="text-[11px] text-muted">{waitNote(g.slice.retrievalP90, g.sla)}</p>
               </div>
               <div>
                 <dt className="text-[10px] font-bold tracking-wide text-gold-2">CREW</dt>
@@ -204,7 +219,7 @@ function DemoBoard() {
               <th className="px-4 py-3 font-bold">Garage</th>
               <SortTh label="Health" k="health" sort={sort} setSort={setSort} />
               <SortTh label="Occupancy" k="occupancy" sort={sort} setSort={setSort} />
-              <SortTh label="p90" k="p90" sort={sort} setSort={setSort} />
+              <SortTh label="To the curb" k="p90" sort={sort} setSort={setSort} />
               <SortTh label="Valets" k="valets" sort={sort} setSort={setSort} />
               <th className="px-3 py-3 font-bold">Demand</th>
               <th className="px-3 py-3 font-bold">Yield / stall</th>
@@ -224,7 +239,12 @@ function DemoBoard() {
                 </td>
                 <td className="px-3 py-3 tabular-nums">{g.health}</td>
                 <td className="px-3 py-3 tabular-nums">{pct(g.occupancy)}</td>
-                <td className="px-3 py-3 tabular-nums">{g.slice.retrievalP90} min</td>
+                <td className="px-3 py-3">
+                  <span className={cn("tabular-nums", g.slice.retrievalP90 > g.sla && "font-semibold text-danger")}>
+                    {g.slice.retrievalP90} min
+                  </span>
+                  <p className="text-[11px] text-muted">{waitNote(g.slice.retrievalP90, g.sla)}</p>
+                </td>
                 <td className="px-3 py-3 tabular-nums">{g.valets}</td>
                 <td className="px-3 py-3 tabular-nums">
                   {g.slice.demand} vs {g.capacity}
@@ -236,6 +256,7 @@ function DemoBoard() {
         </table>
         <p className="px-4 py-3 text-xs text-muted">
           Yield is sample dollars per stall this month. Not a bill and not the live ledger. 360 Huguenot earns more per stall and still misses the curb.
+          To the curb is how long 9 of 10 residents wait. The promise is 10 minutes.
         </p>
       </section>
 
@@ -296,7 +317,7 @@ function LiveBoard() {
           ["HEALTH", String(health), bandLabel(band)],
           ["OCCUPIED", pct(occupancy), `${occupied} of ${stallCount} on the demo plate`],
           ["VALETS", String(valets), valets ? `${capacity} cars/hr` : "Nobody clocked in"],
-          ["P90", mins.length ? `${p90} min` : "—", mins.length ? "This shift" : "No finished pulls yet"],
+          ["TO THE CURB", mins.length ? `${p90} min` : "—", mins.length ? `9 of 10 cars · ${waitNote(p90, 10)}` : "No car has come to the curb yet"],
           ["OPEN", String(openTickets), nested.length ? `${nested.length} nested` : "No nest in the way"],
         ]}
       />
@@ -316,12 +337,14 @@ function LiveBoard() {
               <p className="font-display text-xl">Two Clinton Park</p>
               <p className="text-xs text-muted">New Rochelle · live board</p>
             </div>
-            <span className={cn("rounded-full px-2 py-1 text-[11px] font-bold", bandClass(band))}>{health}</span>
+            <span className={cn("rounded-full px-2 py-1 text-[11px] font-bold", bandClass(band))}>
+              {bandLabel(band)} · {health}
+            </span>
           </div>
           <p className="mt-3 font-display text-3xl tabular-nums">{pct(occupancy)}</p>
           <p className="text-xs text-muted">
             {demandLabel} · {demand} pulls vs {capacity} capacity
-            {avg ? ` · avg ${avg} min` : ""}
+            {mins.length ? ` · usual wait ${avg} min, 9 of 10 by ${p90}` : ""}
           </p>
           <div className="mt-4">
             <Button asChild variant="navy" size="sm">
@@ -488,6 +511,12 @@ function Detail({ garage, demo }: { garage: Scored; demo?: boolean }) {
           <p className="text-[10px] font-bold tracking-[0.16em] text-gold-2">{garage.place.toUpperCase()}</p>
           <h2 className="font-display text-2xl">{garage.name}</h2>
           <p className="mt-1 text-sm text-muted">{garage.fit}</p>
+          <p className="mt-2 max-w-xl text-sm">
+            Usual wait {garage.slice.retrievalAvg} min. 9 of 10 cars are at the curb by {garage.slice.retrievalP90}. The promise is {garage.sla} minutes
+            {lateBy(garage.slice.retrievalP90, garage.sla) > 0
+              ? ` — that is ${lateBy(garage.slice.retrievalP90, garage.sla)} min late.`
+              : "."}
+          </p>
         </div>
         {garage.id === "tcp" ? (
           <Button asChild variant="navy" size="sm">

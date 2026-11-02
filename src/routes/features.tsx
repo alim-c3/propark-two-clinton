@@ -124,7 +124,7 @@ const SEATS = [
     id: "regional",
     kicker: "Regional",
     title: "Three garages. One call.",
-    promise: "The red garage, the reason, and whether a person would even help.",
+    promise: "Three cards. Red, yellow, or green. The reason is on the card.",
     demo: "/regional" as const,
     demoLabel: "Open regional",
     img: "/flow-manager.jpg",
@@ -132,7 +132,7 @@ const SEATS = [
       {
         h: "The book",
         items: [
-          "The miss is the page. The covered garages sit under it",
+          "Three cards, worst first. Open one for the floor",
           "Who showed, who no-called, and what is actually blocked",
           "Open a garage for the floor. The day starts at 5a",
         ],
